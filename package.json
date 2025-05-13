@@ -1,0 +1,57 @@
+{
+  "name": "minecraft-java-finder",
+  "version": "1.0.0",
+  "description": "Application for determining the appropriate Java version for Minecraft",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "tsc && electron .",
+    "dev": "tsc -w",
+    "build": "tsc && electron-builder",
+    "build:win": "tsc && electron-builder --win",
+    "build:mac": "tsc && electron-builder --mac",
+    "build:linux": "tsc && electron-builder --linux"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/minecraft-java-finder.git"
+  },
+  "keywords": [
+    "minecraft",
+    "java",
+    "electron"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.2",
+    "electron-store": "^8.1.0",
+    "i18next": "^23.7.6",
+    "i18next-electron-language-detector": "^0.0.10",
+    "systeminformation": "^5.21.17"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "electron": "^27.1.0",
+    "electron-builder": "^24.6.4",
+    "typescript": "^5.3.2"
+  },
+  "build": {
+    "appId": "com.minecraft-java-finder",
+    "productName": "Minecraft Java Finder",
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
+  }
+}

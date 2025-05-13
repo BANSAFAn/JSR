@@ -1,0 +1,137 @@
+/* Неоновая тема */
+:root {
+  --primary-color: #00FF9C;
+  --secondary-color: #00B8FF;
+  --accent-color: #FF00E4;
+  --text-color: #FFFFFF;
+  --background-color: #0F0F2D;
+  --card-background: #1A1A40;
+  --border-color: #3A3A75;
+  --shadow-color: rgba(0, 255, 156, 0.3);
+  --animation-duration: 0.5s;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  text-shadow: 0 0 5px var(--primary-color);
+}
+
+header, footer {
+  background-color: var(--card-background);
+  box-shadow: 0 0 15px var(--primary-color);
+}
+
+.app-title {
+  color: var(--primary-color);
+  text-shadow: 0 0 10px var(--primary-color);
+  animation: neonPulse 2s infinite alternate;
+}
+
+.info-card, .java-recommendation, .download-options, .installation-guide {
+  background-color: rgba(26, 26, 64, 0.7);
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 0 10px var(--primary-color);
+}
+
+.info-card h3, .java-recommendation h3, .download-options h3, .installation-guide h3 {
+  color: var(--secondary-color);
+  text-shadow: 0 0 5px var(--secondary-color);
+}
+
+.primary-btn {
+  background-color: var(--primary-color);
+  color: #000;
+  box-shadow: 0 0 15px var(--primary-color);
+  text-shadow: none;
+  animation: neonButton 1.5s infinite alternate;
+}
+
+.primary-btn:hover {
+  background-color: var(--accent-color);
+  box-shadow: 0 0 20px var(--accent-color);
+}
+
+.download-link {
+  background-color: var(--secondary-color);
+  color: #000;
+  box-shadow: 0 0 10px var(--secondary-color);
+  text-shadow: none;
+}
+
+.download-link:hover {
+  background-color: var(--accent-color);
+  box-shadow: 0 0 15px var(--accent-color);
+}
+
+.theme-btn[data-theme="neon"] {
+  background-color: var(--primary-color);
+  box-shadow: 0 0 10px var(--primary-color);
+}
+
+.spinner {
+  border-color: var(--accent-color);
+  border-top-color: var(--primary-color);
+  box-shadow: 0 0 15px var(--primary-color);
+}
+
+/* Дополнительные неоновые анимации */
+@keyframes neonPulse {
+  from {
+    text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+  }
+  to {
+    text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color);
+  }
+}
+
+@keyframes neonButton {
+  from {
+    box-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+  }
+  to {
+    box-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color);
+  }
+}
+
+/* Неоновые границы для секций */
+section {
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 0 15px var(--primary-color);
+  position: relative;
+  overflow: hidden;
+}
+
+section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-color));
+  animation: neonBorder 3s linear infinite;
+}
+
+@keyframes neonBorder {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+/* Неоновый эффект для селекторов */
+select, input[type="text"] {
+  background-color: rgba(15, 15, 45, 0.7);
+  border: 1px solid var(--secondary-color);
+  color: var(--text-color);
+  box-shadow: 0 0 5px var(--secondary-color);
+}
+
+select:focus, input[type="text"]:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 10px var(--accent-color);
+  outline: none;
+}
