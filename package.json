@@ -2,14 +2,15 @@
   "name": "minecraft-java-finder",
   "version": "1.0.0",
   "description": "Application for determining the appropriate Java version for Minecraft",
-  "main": "dist/main.js",
+  "main": "./dist/main.js",
   "scripts": {
     "start": "tsc && electron .",
     "dev": "tsc -w",
-    "build": "tsc && electron-builder",
-    "build:win": "tsc && electron-builder --win",
-    "build:mac": "tsc && electron-builder --mac",
-    "build:linux": "tsc && electron-builder --linux"
+    "prebuild": "tsc && node -e \"const fs=require('fs'); const path=require('path'); if(!fs.existsSync('dist/styles')) fs.mkdirSync('dist/styles', {recursive:true}); fs.cpSync('styles', 'dist/styles', {recursive:true}); if(!fs.existsSync('dist/locales')) fs.mkdirSync('dist/locales', {recursive:true}); fs.cpSync('locales', 'dist/locales', {recursive:true}); fs.copyFileSync('index.html', 'dist/index.html');\" ",
+    "build": "npm run prebuild && electron-builder",
+    "build:win": "npm run prebuild && electron-builder --win",
+    "build:mac": "npm run prebuild && electron-builder --mac",
+    "build:linux": "npm run prebuild && electron-builder --linux"
   },
   "repository": {
     "type": "git",
@@ -38,6 +39,18 @@
   "build": {
     "appId": "com.minecraft-java-finder",
     "productName": "Minecraft Java Finder",
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "assets/**/*",
+      "locales/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
     "mac": {
       "category": "public.app-category.utilities"
     },
