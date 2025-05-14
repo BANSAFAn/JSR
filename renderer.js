@@ -159,6 +159,26 @@ function setupEventListeners() {
   document.getElementById('analyze-btn').addEventListener('click', () => {
     analyzeJavaRequirements();
   });
+  
+  // Переключение разделов в боковой панели
+  document.querySelectorAll('.sidebar-main-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.getAttribute('data-action');
+      
+      // Активация кнопки
+      document.querySelectorAll('.sidebar-main-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Показ содержимого раздела
+      document.querySelectorAll('.sidebar-section').forEach(section => section.classList.remove('active'));
+      
+      if (action === 'info') {
+        document.getElementById('info-content').classList.add('active');
+      } else if (action === 'search-java') {
+        document.getElementById('search-java-content').classList.add('active');
+      }
+    });
+  });
 }
 
 // Анализ требований к Java

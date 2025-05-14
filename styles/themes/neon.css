@@ -9,6 +9,7 @@
   --border-color: #3A3A75;
   --shadow-color: rgba(0, 255, 156, 0.3);
   --animation-duration: 0.5s;
+  --sidebar-background: #141450;
 }
 
 body {
@@ -28,6 +29,21 @@ header, footer {
   animation: neonPulse 2s infinite alternate;
 }
 
+.sidebar-title {
+  background: linear-gradient(90deg, #ff0000, #ff8000, #ff4500);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(255, 69, 0, 0.7);
+  animation: gradient 3s linear infinite;
+}
+
+.main-content.blur {
+  backdrop-filter: blur(5px);
+  transition: backdrop-filter 0.3s ease;
+}
+
 .info-card, .java-recommendation, .download-options, .installation-guide {
   background-color: rgba(26, 26, 64, 0.7);
   border: 1px solid var(--primary-color);
@@ -39,12 +55,34 @@ header, footer {
   text-shadow: 0 0 5px var(--secondary-color);
 }
 
-.primary-btn {
+.primary-btn, .sidebar-main-btn.active {
   background-color: var(--primary-color);
   color: #000;
   box-shadow: 0 0 15px var(--primary-color);
   text-shadow: none;
   animation: neonButton 1.5s infinite alternate;
+}
+
+.sidebar {
+  background-color: var(--sidebar-background);
+  box-shadow: 0 0 10px var(--primary-color);
+  border-right: 1px solid var(--primary-color);
+}
+
+.sidebar-main-btn {
+  background-color: rgba(26, 26, 64, 0.8);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 5px var(--secondary-color);
+}
+
+.sidebar-main-btn:hover:not(.active) {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color);
+}
+
+.sidebar-title {
+  color: var(--primary-color);
+  text-shadow: 0 0 8px var(--primary-color);
 }
 
 .primary-btn:hover {

@@ -3,30 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
-  <title>Minecraft Java Finder</title>
+  <title>JSR</title>
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/themes/light.css" id="theme-css">
 </head>
 <body>
   <div class="app-container">
+    <!-- Кнопка переключения боковой панели -->
+    <button id="sidebar-toggle" class="sidebar-toggle">
+      <span class="toggle-icon">☰</span>
+    </button>
     <!-- Боковой бар -->
     <div id="sidebar" class="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-tabs">
-          <button class="sidebar-tab-btn" data-tab="about" data-i18n="aboutTab">О программе</button>
-          <button class="sidebar-tab-btn" data-tab="java" data-i18n="javaTab">Java на компьютере</button>
-        </div>
+        <h2 class="sidebar-title">JSR</h2>
       </div>
       
       <div class="sidebar-content">
-        <!-- Вкладка о программе -->
-        <div id="about-tab" class="sidebar-tab-content">
+        <div class="sidebar-buttons">
+          <button id="info-btn" class="sidebar-main-btn active" data-action="info">
+            <span class="btn-icon">ℹ️</span>
+            <span class="btn-text" data-i18n="infoButton">О программе</span>
+          </button>
+          <button id="search-java-btn" class="sidebar-main-btn" data-action="search-java">
+            <span class="btn-icon">🔍</span>
+            <span class="btn-text" data-i18n="searchJavaButton">Поиск Java на ПК</span>
+          </button>
+        </div>
+        
+        <!-- Блок информации -->
+        <div id="info-content" class="sidebar-section active">
           <div class="about-info">
             <h3 data-i18n="aboutProgram">О программе</h3>
-            <p data-i18n="programDescription">Minecraft Java Finder - приложение для определения подходящей версии Java для Minecraft.</p>
+            <p data-i18n="programDescription">Поиск Java для Minecraft - приложение для определения подходящей версии Java для Minecraft.</p>
             <div class="author-info">
               <h4 data-i18n="author">Автор</h4>
-              <p>BANSAFan</p>
+              <p>BANSAFAn</p>
+              <div class="author-links">
+                <a href="https://github.com/BANSAFAn" class="author-link" target="_blank">
+                  <span class="btn-icon">🌐</span> GitHub
+                </a>
+                <a href="https://www.youtube.com/channel/BANSAFAn" class="author-link" target="_blank">
+                  <span class="btn-icon">📺</span> YouTube
+                </a>
+              </div>
             </div>
             <div class="version-info">
               <h4 data-i18n="version">Версия</h4>
@@ -35,8 +55,8 @@
           </div>
         </div>
         
-        <!-- Вкладка Java на компьютере -->
-        <div id="java-tab" class="sidebar-tab-content">
+        <!-- Блок поиска Java -->
+        <div id="search-java-content" class="sidebar-section">
           <div class="java-search-container">
             <input type="text" id="java-search" data-i18n-placeholder="searchJava" placeholder="Поиск Java...">
           </div>
@@ -53,8 +73,8 @@
     <div class="main-content">
       <header>
         <div class="logo">
-          <img src="assets/images/logo.svg" alt="Minecraft Java Finder" class="logo-img">
-          <h1 class="app-title" data-i18n="appTitle">Minecraft Java Finder</h1>
+          <img src="assets/images/logo.svg" alt="JSR" class="logo-img">
+          <h1 class="app-title" data-i18n="appTitle">JSR @2025 by BANSAFAn</h1>
         </div>
         <div class="settings-panel">
           <div class="language-selector">
@@ -120,7 +140,7 @@
           <div id="custom-version-container" class="hidden">
             <input type="text" id="custom-version-input" data-i18n-placeholder="enterCustomVersion" placeholder="Enter custom version (e.g. 1.19.2)">
           </div>
-          <button id="analyze-btn" class="primary-btn" data-i18n="analyzeButton">Analyze</button>
+          <button id="analyze-btn" class="analyze-btn"><i class="search-icon">🔍</i></button>
         </div>
       </section>
 
@@ -156,5 +176,6 @@
   </div>
 
   <script src="renderer.js"></script>
+  <script src="js/sidebar-controller.js"></script>
 </body>
 </html>

@@ -34,6 +34,7 @@ body {
 .app-container {
   display: flex;
   min-height: 100vh;
+  justify-content: center;
 }
 
 /* Боковой бар */
@@ -47,7 +48,7 @@ body {
   top: 0;
   z-index: 100;
   transform: translateX(-100%);
-  transition: transform 0.4s var(--animation-timing);
+  transition: transform 0.3s var(--animation-timing), background-color 0.3s var(--animation-timing), color 0.3s var(--animation-timing);
   box-shadow: 2px 0 5px var(--shadow-color);
   overflow-y: auto;
 }
@@ -56,34 +57,105 @@ body {
   transform: translateX(0);
 }
 
+.sidebar-toggle {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99;
+  box-shadow: 0 2px 5px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+  transform: scale(1.1);
+}
+
+.sidebar-toggle .toggle-icon {
+  font-size: 1.5rem;
+}
+
+.main-content.blur {
+  filter: blur(3px);
+  transition: filter 0.3s ease;
+}
+
+/* Боковая панель всегда видима */
+.sidebar {
+  color: var(--text-color);
+}
+
 .sidebar-header {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
 }
 
-.sidebar-tabs {
-  display: flex;
-  gap: 0.5rem;
+.sidebar-title {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: bold;
+  background: linear-gradient(90deg, #ff0000, #ff8000, #ff4500);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: gradient 3s linear infinite;
 }
 
-.sidebar-tab-btn {
-  padding: 0.5rem 1rem;
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.sidebar-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.sidebar-main-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1rem;
   border: none;
-  background-color: transparent;
-  border-radius: 4px;
+  background-color: var(--card-background);
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 500;
   color: var(--text-color);
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px var(--shadow-color);
 }
 
-.sidebar-tab-btn.active {
+.sidebar-main-btn.active {
   background-color: var(--primary-color);
   color: white;
 }
 
-.sidebar-tab-btn:hover:not(.active) {
+.sidebar-main-btn:hover:not(.active) {
   background-color: var(--border-color);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  margin-right: 0.8rem;
+  font-size: 1.2rem;
+}
+
+.btn-text {
+  font-size: 1rem;
 }
 
 .sidebar-content {
@@ -263,14 +335,18 @@ body {
 /* Основной контент */
 .main-content {
   flex: 1;
-  margin-left: var(--sidebar-width);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  max-width: 1200px;
+  align-items: center;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* Заголовок */
 header {
-  width: calc(100% - var(--sidebar-width));
+  width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -298,7 +374,12 @@ header {
 
 .settings-panel {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 1.5rem;
+  background-color: var(--card-background);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .language-selector select,
@@ -343,6 +424,14 @@ main {
   flex: 1;
   padding: 2rem;
   position: relative;
+  width: 100%;
+}
+
+/* Улучшенная сортировка и отображение */
+.system-info-section, .minecraft-section, .results-section {
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 900px;
 }
 
 section {
@@ -414,7 +503,7 @@ input[type="text"] {
   max-width: 300px;
 }
 
-.download-button {
+.download-button, .primary-btn {
   padding: 0.8rem 1.5rem;
   margin: 0.5rem;
   border: none;
@@ -426,6 +515,34 @@ input[type="text"] {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+}
+
+.primary-btn, .analyze-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.analyze-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.search-icon {
+  font-style: normal;
+  font-size: 1.5rem;
 }
 
 .download-button::after {
