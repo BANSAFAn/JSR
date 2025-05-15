@@ -21,7 +21,10 @@
     "java",
     "electron"
   ],
-  "author": "Baner",
+  "author": {
+    "name": "Baner",
+    "email": "baneronetwo@memeware.net"
+  },
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.2",
