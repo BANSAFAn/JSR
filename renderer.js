@@ -77,6 +77,14 @@ let systemInfo = {};
 let selectedMinecraftVersion = 'latest';
 let customVersion = '';
 
+// Импорт функций установщика
+let installerUI;
+try {
+  installerUI = require('./dist/installer-ui');
+} catch (error) {
+  console.log('Модуль установщика недоступен:', error);
+}
+
 // Инициализация приложения
 document.addEventListener('DOMContentLoaded', async () => {
   // Загрузка настроек
@@ -92,7 +100,77 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Обработчики событий
   setupEventListeners();
+  
+  // Инициализация установщика при первом запуске
+  if (installerUI && typeof installerUI.initInstallerUI === 'function') {
+    installerUI.initInstallerUI();
+  } else {
+    // Проверяем, первый ли это запуск
+    const isFirstRun = await ipcRenderer.invoke('is-first-run');
+    if (isFirstRun) {
+      // Показываем простое сообщение, если модуль установщика недоступен
+      showFirstRunMessage();
+    }
+  }
 });
+
+// Показать сообщение при первом запуске
+function showFirstRunMessage() {
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = '0';
+  container.style.left = '0';
+  container.style.width = '100%';
+  container.style.height = '100%';
+  container.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  container.style.display = 'flex';
+  container.style.justifyContent = 'center';
+  container.style.alignItems = 'center';
+  container.style.zIndex = '1000';
+  
+  const message = document.createElement('div');
+  message.style.backgroundColor = 'var(--card-background)';
+  message.style.padding = '30px';
+  message.style.borderRadius = '8px';
+  message.style.maxWidth = '500px';
+  message.style.textAlign = 'center';
+  
+  const title = document.createElement('h2');
+  title.textContent = 'Добро пожаловать в JSR!';
+  title.style.color = 'var(--primary-color)';
+  title.style.marginBottom = '15px';
+  
+  const text = document.createElement('p');
+  text.textContent = 'Спасибо за установку JSR. Это приложение поможет вам найти подходящую версию Java для Minecraft.';
+  text.style.marginBottom = '20px';
+  
+  const button = document.createElement('button');
+  button.textContent = 'Начать работу';
+  button.style.padding = '10px 20px';
+  button.style.backgroundColor = 'var(--primary-color)';
+  button.style.color = 'white';
+  button.style.border = 'none';
+  button.style.borderRadius = '4px';
+  button.style.cursor = 'pointer';
+  
+  button.addEventListener('click', () => {
+    container.remove();
+    ipcRenderer.invoke('save-install-config', {
+      installDir: '',
+      language: document.getElementById('language-select').value,
+      createDesktopShortcut: false,
+      createStartMenuShortcut: false,
+      autoStart: false
+    });
+  });
+  
+  message.appendChild(title);
+  message.appendChild(text);
+  message.appendChild(button);
+  container.appendChild(message);
+  
+  document.body.appendChild(container);
+}
 
 // Получение системной информации
 async function getSystemInfo() {

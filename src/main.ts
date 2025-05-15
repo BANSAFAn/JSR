@@ -1,10 +1,13 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import Store from 'electron-store';
 import * as si from 'systeminformation';
 
 // Initialize settings storage
 const store = new Store();
+
+// Проверка первого запуска
+const isFirstRun = !store.has('installed') || !store.get('installed');
 
 // Save window reference to prevent automatic closing
 let mainWindow: BrowserWindow | null;
@@ -19,7 +22,10 @@ function createWindow(): void {
       contextIsolation: false,
       preload: path.join(__dirname, '../preload.js')
     },
-    icon: path.join(__dirname, '../assets/icons/icon.png')
+    icon: path.join(__dirname, '../assets/images/Logo.png'),
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    frame: true
   });
 
   // Load index.html
@@ -76,4 +82,42 @@ ipcMain.handle('get-settings', () => {
     theme: 'light',
     language: 'en'
   });
+});
+
+// Проверка первого запуска
+ipcMain.handle('is-first-run', () => {
+  return isFirstRun;
+});
+
+// Получение настроек установки
+ipcMain.handle('get-install-config', () => {
+  return store.get('install-config', {
+    installDir: path.join(app.getPath('appData'), 'JSR'),
+    language: 'ru',
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    autoStart: false
+  });
+});
+
+// Сохранение настроек установки
+ipcMain.handle('save-install-config', (event, config) => {
+  store.set('install-config', config);
+  store.set('installed', true);
+  store.set('settings.language', config.language);
+  return true;
+});
+
+// Выбор директории установки
+ipcMain.handle('select-install-directory', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: 'Выберите папку для установки JSR',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  
+  if (canceled || filePaths.length === 0) {
+    return null;
+  }
+  
+  return filePaths[0];
 });

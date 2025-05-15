@@ -1,5 +1,5 @@
 {
-  "name": "minecraft-java-finder",
+  "name": "jsr",
   "version": "1.0.0",
   "description": "Application for determining the appropriate Java version for Minecraft",
   "main": "./dist/main.js",
@@ -10,7 +10,15 @@
     "build": "npm run prebuild && electron-builder",
     "build:win": "npm run prebuild && electron-builder --win",
     "build:mac": "npm run prebuild && electron-builder --mac",
-    "build:linux": "npm run prebuild && electron-builder --linux"
+    "build:linux": "npm run prebuild && electron-builder --linux",
+    "release": "npm run prebuild && electron-builder --publish always",
+    "release:win": "npm run prebuild && electron-builder --win --publish always",
+    "release:mac": "npm run prebuild && electron-builder --mac --publish always",
+    "release:linux": "npm run prebuild && electron-builder --linux --publish always",
+    "version-patch": "npm version patch",
+    "version-minor": "npm version minor",
+    "version-major": "npm version major",
+    "build-installer": "tsc && node build-installer.js"
   },
   "repository": {
     "type": "git",
@@ -37,11 +45,12 @@
     "@types/node": "^20.10.0",
     "electron": "^27.1.0",
     "electron-builder": "^24.6.4",
+    "electron-wix-msi": "^5.0.0",
     "typescript": "^5.3.2"
   },
   "build": {
-    "appId": "com.minecraft-java-finder",
-    "productName": "Minecraft Java Finder",
+    "appId": "com.bansafan.jsr",
+    "productName": "JSR",
     "files": [
       "dist/**/*",
       "node_modules/**/*",
@@ -54,13 +63,51 @@
       "output": "dist",
       "buildResources": "assets"
     },
+    "compression": "maximum",
+    "asar": true,
     "mac": {
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        "portable"
+      ],
+      "icon": "assets/images/Logo.png",
+      "installerIcon": "assets/images/Logo.png",
+      "uninstallerIcon": "assets/images/Logo.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "JSR - Minecraft Java Finder",
+      "license": "LICENSE",
+      "installerIcon": "assets/images/Logo.png",
+      "uninstallerIcon": "assets/images/Logo.png",
+      "installerHeaderIcon": "assets/images/Logo.png",
+      "installerSidebar": "assets/images/installer-sidebar.png",
+      "uninstallerSidebar": "assets/images/installer-sidebar.png",
+      "allowElevation": true,
+      "runAfterFinish": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": true,
+      "displayLanguageSelector": true,
+      "menuCategory": true,
+      "multiLanguageInstaller": true,
+      "languages": ["en", "ru", "uk", "de"],
+      "include": "assets/nsis-translations.nsh"
     },
     "linux": {
       "target": [
@@ -68,6 +115,14 @@
         "deb"
       ],
       "category": "Utility"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BANSAFAn",
+        "repo": "JSR",
+        "releaseType": "release"
+      }
+    ]
   }
 }

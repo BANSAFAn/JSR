@@ -1,0 +1,42 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        
+    steps:
+      - name: Проверка кода
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      - name: Настройка Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          
+      - name: Установка зависимостей
+        run: npm ci
+        
+      - name: Сборка и публикация
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npm run release:win
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            npm run release:mac
+          else
+            npm run release:linux
+          fi
+        shell: bash

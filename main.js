@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const si = require('systeminformation');
@@ -19,7 +19,10 @@ function createWindow() {
       contextIsolation: false,
       preload: path.join(__dirname, 'preload.js')
     },
-    icon: path.join(__dirname, 'assets/icons/icon.png')
+    icon: path.join(__dirname, 'assets/images/Logo.png'),
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    frame: true
   });
 
   // Загружаем index.html
