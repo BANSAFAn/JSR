@@ -135,7 +135,7 @@ function createInstallDialog(): void {
     const option = document.createElement('option');
     option.value = lang.value;
     option.textContent = lang.text;
-    languageSelect.appendChild(option);
+    languageSelect?.appendChild(option);
   });
   
   langGroup.appendChild(langLabel);
@@ -213,7 +213,7 @@ function createInstallDialog(): void {
         startMenuShortcutCheckbox && autoStartCheckbox) {
       const config: InstallConfig = {
         installDir: installDirInput.value,
-        language: languageSelect.value,
+        language: languageSelect?.value,
         createDesktopShortcut: desktopShortcutCheckbox.checked,
         createStartMenuShortcut: startMenuShortcutCheckbox.checked,
         autoStart: autoStartCheckbox.checked
