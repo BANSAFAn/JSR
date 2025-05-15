@@ -104,7 +104,7 @@
       "displayLanguageSelector": true,
       "menuCategory": true,
       "multiLanguageInstaller": true,
-      "languages": ["en", "ru", "uk", "de"],
+      "installerLanguages": ["en", "ru", "uk", "de"],
       "include": "assets/nsis-translations.nsh"
     },
     "linux": {
