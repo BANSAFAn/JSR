@@ -83,8 +83,6 @@
         "portable"
       ],
       "icon": "assets/images/Logo.png",
-      "installerIcon": "assets/images/Logo.png",
-      "uninstallerIcon": "assets/images/Logo.png",
       "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "nsis": {
