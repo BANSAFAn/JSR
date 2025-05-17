@@ -35,16 +35,20 @@ function createWindow(): void {
     : path.join(__dirname, '../index.html'); // Путь в режиме разработки
     
   // Установка пути к стилям
-  if (app.isPackaged) {
+  if (app.isPackaged && mainWindow) {
     mainWindow.webContents.on('did-finish-load', () => {
-      mainWindow.webContents.insertCSS(`
-        @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
-        @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
-      `);
+      if (mainWindow) {
+        mainWindow.webContents.insertCSS(`
+          @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
+          @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
+        `);
+      }
     });  
   }
   
-  mainWindow.loadFile(indexPath);
+  if (mainWindow) {
+    mainWindow.loadFile(indexPath);
+  }
 
   // Open DevTools in development mode
   // mainWindow.webContents.openDevTools();

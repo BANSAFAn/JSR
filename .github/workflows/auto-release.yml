@@ -28,14 +28,14 @@ jobs:
 
       - name: Создание релиза
         id: create-release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.get-version.outputs.version }}
-          release_name: Версия ${{ steps.get-version.outputs.version }}
-          draft: false
-          prerelease: false
+        run: |
+          gh release create v${{ steps.get-version.outputs.version }} \
+            --title "Версия ${{ steps.get-version.outputs.version }}" \
+            --generate-notes \
+            --repo ${{ github.repository }}
+          echo "upload_url=${{ github.server_url }}/${{ github.repository }}/releases/v${{ steps.get-version.outputs.version }}/assets/upload" >> $GITHUB_OUTPUT
 
   build-and-upload:
     needs: create-release
@@ -76,33 +76,27 @@ jobs:
 
       - name: Загрузка артефактов Windows
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/JSR-Setup-${{ needs.create-release.outputs.version }}.exe
-          asset_name: JSR-Setup-${{ needs.create-release.outputs.version }}.exe
-          asset_content_type: application/octet-stream
+        run: |
+          gh release upload v${{ needs.create-release.outputs.version }} \
+            ./dist/JSR-Setup-${{ needs.create-release.outputs.version }}.exe \
+            --repo ${{ github.repository }}
 
       - name: Загрузка артефактов macOS
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/JSR-${{ needs.create-release.outputs.version }}.dmg
-          asset_name: JSR-${{ needs.create-release.outputs.version }}.dmg
-          asset_content_type: application/octet-stream
+        run: |
+          gh release upload v${{ needs.create-release.outputs.version }} \
+            ./dist/JSR-${{ needs.create-release.outputs.version }}.dmg \
+            --repo ${{ github.repository }}
 
       - name: Загрузка артефактов Linux
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/JSR-${{ needs.create-release.outputs.version }}.AppImage
-          asset_name: JSR-${{ needs.create-release.outputs.version }}.AppImage
-          asset_content_type: application/octet-stream
+        run: |
+          gh release upload v${{ needs.create-release.outputs.version }} \
+            ./dist/JSR-${{ needs.create-release.outputs.version }}.AppImage \
+            --repo ${{ github.repository }}
