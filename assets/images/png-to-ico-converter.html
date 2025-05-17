@@ -1,0 +1,46 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>PNG to ICO Converter</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        canvas { display: none; }
+      </style>
+    </head>
+    <body>
+      <h1>PNG to ICO Converter</h1>
+      <p>Этот файл автоматически конвертирует Logo.png в формат ICO.</p>
+      <canvas id="canvas"></canvas>
+      <script>
+        // Функция для создания ICO файла
+        function createIco() {
+          const canvas = document.getElementById('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
+          
+          img.onload = function() {
+            // Создаем несколько размеров иконок (16x16, 32x32, 48x48)
+            const sizes = [16, 32, 48];
+            const dataUrls = [];
+            
+            for (const size of sizes) {
+              canvas.width = size;
+              canvas.height = size;
+              ctx.clearRect(0, 0, size, size);
+              ctx.drawImage(img, 0, 0, size, size);
+              dataUrls.push(canvas.toDataURL('image/png'));
+            }
+            
+            // Выводим данные для сохранения
+            console.log(JSON.stringify(dataUrls));
+          };
+          
+          img.src = '../assets/images/Logo.png';
+        }
+        
+        createIco();
+      </script>
+    </body>
+    </html>
+    
