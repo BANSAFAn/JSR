@@ -29,7 +29,22 @@ function createWindow(): void {
   });
 
   // Load index.html
-  mainWindow.loadFile(path.join(__dirname, '../index.html'));
+  // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
+  const indexPath = app.isPackaged
+    ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
+    : path.join(__dirname, '../index.html'); // Путь в режиме разработки
+    
+  // Установка пути к стилям
+  if (app.isPackaged) {
+    mainWindow.webContents.on('did-finish-load', () => {
+      mainWindow.webContents.insertCSS(`
+        @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
+        @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
+      `);
+    });  
+  }
+  
+  mainWindow.loadFile(indexPath);
 
   // Open DevTools in development mode
   // mainWindow.webContents.openDevTools();

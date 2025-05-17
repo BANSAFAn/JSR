@@ -1,0 +1,108 @@
+name: Автоматический релиз
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - 'styles/**'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - name: Проверка кода
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Получение версии
+        id: get-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Создание релиза
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get-version.outputs.version }}
+          release_name: Версия ${{ steps.get-version.outputs.version }}
+          draft: false
+          prerelease: false
+
+  build-and-upload:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    steps:
+      - name: Проверка кода
+        uses: actions/checkout@v3
+
+      - name: Настройка Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Сборка для Windows
+        if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:win
+
+      - name: Сборка для macOS
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:mac
+
+      - name: Сборка для Linux
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:linux
+
+      - name: Загрузка артефактов Windows
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./dist/JSR-Setup-${{ needs.create-release.outputs.version }}.exe
+          asset_name: JSR-Setup-${{ needs.create-release.outputs.version }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Загрузка артефактов macOS
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./dist/JSR-${{ needs.create-release.outputs.version }}.dmg
+          asset_name: JSR-${{ needs.create-release.outputs.version }}.dmg
+          asset_content_type: application/octet-stream
+
+      - name: Загрузка артефактов Linux
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./dist/JSR-${{ needs.create-release.outputs.version }}.AppImage
+          asset_name: JSR-${{ needs.create-release.outputs.version }}.AppImage
+          asset_content_type: application/octet-stream
