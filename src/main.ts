@@ -108,7 +108,8 @@ ipcMain.handle('get-system-info', async () => {
       graphicsInfo = await si.graphics();
     } catch (e) {
       console.error('Error getting graphics info:', e);
-      graphicsInfo.controllers = [{ model: 'Unknown' }];
+      // Исправление типизации для контроллеров графики
+      graphicsInfo = { controllers: [{ model: 'Unknown' }] };
     }
     
     return {
