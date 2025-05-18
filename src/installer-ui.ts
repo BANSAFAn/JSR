@@ -103,6 +103,9 @@ function createInstallDialog(): void {
       if (dir && installDirInput) {
         installDirInput.value = dir;
       }
+    }).catch(error => {
+      console.error('Ошибка при выборе директории установки:', error);
+      alert('Не удалось выбрать директорию. Пожалуйста, попробуйте еще раз.');
     });
   });
   
@@ -211,6 +214,34 @@ function createInstallDialog(): void {
   installButton.addEventListener('click', () => {
     if (installDirInput && languageSelect && desktopShortcutCheckbox && 
         startMenuShortcutCheckbox && autoStartCheckbox) {
+      // Проверяем директорию установки
+      if (!installDirInput.value) {
+        alert('Пожалуйста, выберите директорию установки.');
+        return;
+      }
+      
+      // Показываем индикатор загрузки
+      const loadingOverlay = document.createElement('div');
+      loadingOverlay.className = 'loading-overlay';
+      loadingOverlay.style.position = 'absolute';
+      loadingOverlay.style.top = '0';
+      loadingOverlay.style.left = '0';
+      loadingOverlay.style.width = '100%';
+      loadingOverlay.style.height = '100%';
+      loadingOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      loadingOverlay.style.display = 'flex';
+      loadingOverlay.style.justifyContent = 'center';
+      loadingOverlay.style.alignItems = 'center';
+      loadingOverlay.style.zIndex = '1001';
+      
+      const spinner = document.createElement('div');
+      spinner.className = 'spinner';
+      loadingOverlay.appendChild(spinner);
+      
+      if (installDialog) {
+        installDialog.appendChild(loadingOverlay);
+      }
+      
       const config: InstallConfig = {
         installDir: installDirInput.value,
         language: languageSelect?.value,
@@ -220,9 +251,17 @@ function createInstallDialog(): void {
       };
       
       ipcRenderer.invoke('save-install-config', config).then(() => {
+        // Удаляем индикатор загрузки
+        loadingOverlay.remove();
         if (installDialog) {
           installDialog.style.display = 'none';
         }
+        showInstallComplete();
+      }).catch(error => {
+        console.error('Ошибка при сохранении настроек установки:', error);
+        // Удаляем индикатор загрузки
+        loadingOverlay.remove();
+        alert('Произошла ошибка при установке. Пожалуйста, попробуйте еще раз.');
       });
     }
   });
@@ -257,6 +296,46 @@ function createInstallDialog(): void {
   
   // Добавляем стили для диалога
   addInstallerStyles();
+}
+
+// Показать сообщение о завершении установки
+function showInstallComplete(): void {
+  const completeDialog = document.createElement('div');
+  completeDialog.className = 'install-complete-dialog';
+  
+  const completeContent = document.createElement('div');
+  completeContent.className = 'install-complete-content';
+  
+  const title = document.createElement('h2');
+  title.textContent = 'Установка завершена';
+  title.className = 'install-title';
+  
+  const message = document.createElement('p');
+  message.textContent = 'JSR успешно установлен на ваш компьютер. Теперь вы можете использовать приложение для определения подходящей версии Java для Minecraft.';
+  message.className = 'install-message';
+  
+  const button = document.createElement('button');
+  button.textContent = 'Начать работу';
+  button.className = 'install-button';
+  button.addEventListener('click', () => {
+    completeDialog.remove();
+    // Перезагружаем страницу для применения настроек
+    window.location.reload();
+  });
+  
+  completeContent.appendChild(title);
+  completeContent.appendChild(message);
+  completeContent.appendChild(button);
+  completeDialog.appendChild(completeContent);
+  
+  document.body.appendChild(completeDialog);
+}
+
+// Скрыть диалог установки
+function hideInstallDialog(): void {
+  if (installDialog) {
+    installDialog.style.display = 'none';
+  }
 }
 
 // Добавить стили для установщика

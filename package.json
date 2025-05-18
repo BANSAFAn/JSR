@@ -91,7 +91,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "JSR - Minecraft Java Finder",
+      "shortcutName": "JSR",
       "license": "LICENSE",
       "installerIcon": "assets/images/AppIcon.ico",
       "uninstallerIcon": "assets/images/AppIcon.ico",
@@ -106,7 +106,9 @@
       "menuCategory": true,
       "multiLanguageInstaller": true,
       "installerLanguages": ["en", "ru", "uk", "de"],
-      "include": "assets/nsis-translations.nsh"
+      "include": "assets/nsis-translations.nsh",
+      "displayName": "JSR",
+      "perMachine": true
     },
     "linux": {
       "target": [

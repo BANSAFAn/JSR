@@ -1,13 +1,20 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import Store from 'electron-store';
 import * as si from 'systeminformation';
+import * as fs from 'fs';
 
 // Initialize settings storage
 const store = new Store();
 
 // Проверка первого запуска
 const isFirstRun = !store.has('installed') || !store.get('installed');
+
+// Очистка старых данных при необходимости
+if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023') {
+  store.clear();
+  store.set('appName', 'JSR');
+}
 
 // Save window reference to prevent automatic closing
 let mainWindow: BrowserWindow | null;
@@ -73,20 +80,52 @@ app.on('window-all-closed', function () {
 // Get system information
 ipcMain.handle('get-system-info', async () => {
   try {
-    const cpu = await si.cpu();
-    const mem = await si.mem();
-    const os = await si.osInfo();
-    const graphics = await si.graphics();
+    // Используем try-catch для каждого вызова, чтобы получить максимум информации
+    let cpuInfo = { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 };
+    let memInfo = { total: 0 };
+    let osInfo = { platform: 'Unknown', release: 'Unknown', arch: 'Unknown' };
+    let graphicsInfo = { controllers: [] };
+    
+    try {
+      cpuInfo = await si.cpu();
+    } catch (e) {
+      console.error('Error getting CPU info:', e);
+    }
+    
+    try {
+      memInfo = await si.mem();
+    } catch (e) {
+      console.error('Error getting memory info:', e);
+    }
+    
+    try {
+      osInfo = await si.osInfo();
+    } catch (e) {
+      console.error('Error getting OS info:', e);
+    }
+    
+    try {
+      graphicsInfo = await si.graphics();
+    } catch (e) {
+      console.error('Error getting graphics info:', e);
+      graphicsInfo.controllers = [{ model: 'Unknown' }];
+    }
     
     return {
-      cpu,
-      mem,
-      os,
-      graphics
+      cpu: cpuInfo,
+      mem: memInfo,
+      os: osInfo,
+      graphics: graphicsInfo
     };
   } catch (error) {
     console.error('Error getting system information:', error);
-    return { error: (error as Error).message };
+    // Возвращаем базовую информацию, чтобы интерфейс не сломался
+    return { 
+      cpu: { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 },
+      mem: { total: 0 },
+      os: { platform: process.platform, release: 'Unknown', arch: process.arch },
+      graphics: { controllers: [{ model: 'Unknown' }] }
+    };
   }
 });
 
@@ -117,6 +156,28 @@ ipcMain.handle('get-install-config', () => {
     createStartMenuShortcut: true,
     autoStart: false
   });
+});
+
+// Получение информации о Java
+ipcMain.handle('get-java-info', async () => {
+  try {
+    const javaInfo = await si.versions();
+    return javaInfo;
+  } catch (error) {
+    console.error('Error getting Java information:', error);
+    return { error: (error as Error).message };
+  }
+});
+
+// Открытие внешних ссылок
+ipcMain.handle('open-external-link', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return true;
+  } catch (error) {
+    console.error('Error opening external link:', error);
+    return false;
+  }
 });
 
 // Сохранение настроек установки

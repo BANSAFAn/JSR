@@ -8,6 +8,12 @@ on:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+      packages: write
+      issues: write
+      pull-requests: write
+      discussions: write
     
     strategy:
       matrix:
@@ -28,15 +34,20 @@ jobs:
       - name: Установка зависимостей
         run: npm ci
         
-      - name: Сборка и публикация
+      - name: Сборка и публикация для Windows
+        if: matrix.os == 'windows-latest'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then
-            npm run release:win
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            npm run release:mac
-          else
-            npm run release:linux
-          fi
-        shell: bash
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:win
+        
+      - name: Сборка и публикация для macOS
+        if: matrix.os == 'macos-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:mac
+        
+      - name: Сборка и публикация для Linux
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:linux

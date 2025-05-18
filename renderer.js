@@ -403,14 +403,33 @@ function changeLanguage(language) {
     // Обновляем все элементы с атрибутом data-i18n
     document.querySelectorAll('[data-i18n]').forEach(element => {
       const key = element.getAttribute('data-i18n');
-      element.textContent = t(key);
+      if (key) {
+        // Проверяем, есть ли параметры для перевода
+        const paramsAttr = element.getAttribute('data-i18n-params');
+        let params = {};
+        
+        if (paramsAttr) {
+          try {
+            params = JSON.parse(paramsAttr);
+          } catch (e) {
+            console.error('Ошибка при парсинге параметров перевода:', e);
+          }
+        }
+        
+        element.textContent = t(key, params);
+      }
     });
     
     // Обновляем плейсхолдеры
     document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
       const key = element.getAttribute('data-i18n-placeholder');
-      element.placeholder = t(key);
+      if (key) {
+        element.placeholder = t(key);
+      }
     });
+    
+    // Обновляем заголовок приложения
+    document.title = t('appTitle');
     
     // Если есть результаты анализа, обновляем их
     if (!document.getElementById('results-section').classList.contains('hidden')) {
@@ -421,9 +440,12 @@ function changeLanguage(language) {
 
 // Сохранение настроек
 function saveSettings(newSettings) {
-  ipcRenderer.invoke('get-settings').then(currentSettings => {
+  window.electronAPI.getSettings().then(currentSettings => {
     const updatedSettings = { ...currentSettings, ...newSettings };
-    ipcRenderer.send('save-settings', updatedSettings);
+    window.electronAPI.saveSettings(updatedSettings);
+  }).catch(error => {
+    console.error('Ошибка при сохранении настроек:', error);
+    showErrorMessage('Не удалось сохранить настройки. Пожалуйста, попробуйте еще раз.');
   });
 }
 

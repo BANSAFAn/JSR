@@ -3,7 +3,22 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Экспортируем API для использования в рендерере
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Системная информация
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  
+  // Настройки
   getSettings: () => ipcRenderer.invoke('get-settings'),
-  saveSettings: (settings) => ipcRenderer.send('save-settings', settings)
+  saveSettings: (settings) => ipcRenderer.send('save-settings', settings),
+  
+  // Установщик
+  isFirstRun: () => ipcRenderer.invoke('is-first-run'),
+  getInstallConfig: () => ipcRenderer.invoke('get-install-config'),
+  saveInstallConfig: (config) => ipcRenderer.invoke('save-install-config', config),
+  selectInstallDirectory: () => ipcRenderer.invoke('select-install-directory'),
+  
+  // Java
+  getJavaInfo: () => ipcRenderer.invoke('get-java-info'),
+  
+  // Внешние ссылки
+  openExternalLink: (url) => ipcRenderer.invoke('open-external-link', url)
 });

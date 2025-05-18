@@ -1,0 +1,66 @@
+appId: com.bansafan.jsr
+productName: JSR
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - assets/**/*
+  - locales/**/*
+  - styles/**/*
+  - index.html
+  - package.json
+directories:
+  output: dist
+  buildResources: assets
+compression: maximum
+asar: true
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - portable
+  icon: assets/images/Logo.png
+  artifactName: ${productName}-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: JSR
+  license: LICENSE
+  installerIcon: assets/images/Logo.png
+  uninstallerIcon: assets/images/Logo.png
+  installerHeaderIcon: assets/images/Logo.png
+  installerSidebar: assets/images/installer-sidebar.png
+  uninstallerSidebar: assets/images/installer-sidebar.png
+  allowElevation: true
+  runAfterFinish: true
+  artifactName: ${productName}-Setup-${version}.${ext}
+  deleteAppDataOnUninstall: true
+  displayLanguageSelector: true
+  menuCategory: true
+  multiLanguageInstaller: true
+  installerLanguages:
+    - en
+    - ru
+    - uk
+    - de
+  include: assets/nsis-translations.nsh
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+publish:
+  - provider: github
+    owner: BANSAFAn
+    repo: JSR
+    releaseType: release
+    vPrefixedTagName: true
+    publishAutoUpdate: true
