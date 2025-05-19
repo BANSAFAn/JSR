@@ -42,6 +42,13 @@ const electron_store_1 = __importDefault(require("electron-store"));
 const si = __importStar(require("systeminformation"));
 // Initialize settings storage
 const store = new electron_store_1.default();
+// Проверка первого запуска
+const isFirstRun = !store.has('installed') || !store.get('installed');
+// Очистка старых данных при необходимости
+if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023') {
+    store.clear();
+    store.set('appName', 'JSR');
+}
 // Save window reference to prevent automatic closing
 let mainWindow;
 function createWindow() {
@@ -54,10 +61,30 @@ function createWindow() {
             contextIsolation: false,
             preload: path.join(__dirname, '../preload.js')
         },
-        icon: path.join(__dirname, '../assets/icons/icon.png')
+        icon: path.join(__dirname, '../assets/images/Logo.png'),
+        autoHideMenuBar: true,
+        titleBarStyle: 'hidden',
+        frame: true
     });
     // Load index.html
-    mainWindow.loadFile(path.join(__dirname, '../index.html'));
+    // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
+    const indexPath = electron_1.app.isPackaged
+        ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
+        : path.join(__dirname, '../index.html'); // Путь в режиме разработки
+    // Установка пути к стилям
+    if (electron_1.app.isPackaged && mainWindow) {
+        mainWindow.webContents.on('did-finish-load', () => {
+            if (mainWindow) {
+                mainWindow.webContents.insertCSS(`
+          @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
+          @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
+        `);
+            }
+        });
+    }
+    if (mainWindow) {
+        mainWindow.loadFile(indexPath);
+    }
     // Open DevTools in development mode
     // mainWindow.webContents.openDevTools();
 }
@@ -79,20 +106,54 @@ electron_1.app.on('window-all-closed', function () {
 // Get system information
 electron_1.ipcMain.handle('get-system-info', async () => {
     try {
-        const cpu = await si.cpu();
-        const mem = await si.mem();
-        const os = await si.osInfo();
-        const graphics = await si.graphics();
+        // Используем try-catch для каждого вызова, чтобы получить максимум информации
+        let cpuInfo = { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 };
+        let memInfo = { total: 0 };
+        let osInfo = { platform: 'Unknown', release: 'Unknown', arch: 'Unknown' };
+        // Используем тип, совместимый с возвращаемым значением si.graphics()
+        let graphicsInfo = { controllers: [] };
+        try {
+            cpuInfo = await si.cpu();
+        }
+        catch (e) {
+            console.error('Error getting CPU info:', e);
+        }
+        try {
+            memInfo = await si.mem();
+        }
+        catch (e) {
+            console.error('Error getting memory info:', e);
+        }
+        try {
+            osInfo = await si.osInfo();
+        }
+        catch (e) {
+            console.error('Error getting OS info:', e);
+        }
+        try {
+            graphicsInfo = await si.graphics();
+        }
+        catch (e) {
+            console.error('Error getting graphics info:', e);
+            // Исправление типизации для контроллеров графики
+            graphicsInfo = { controllers: [{ model: 'Unknown' }] };
+        }
         return {
-            cpu,
-            mem,
-            os,
-            graphics
+            cpu: cpuInfo,
+            mem: memInfo,
+            os: osInfo,
+            graphics: graphicsInfo
         };
     }
     catch (error) {
         console.error('Error getting system information:', error);
-        return { error: error.message };
+        // Возвращаем базовую информацию, чтобы интерфейс не сломался
+        return {
+            cpu: { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 },
+            mem: { total: 0 },
+            os: { platform: process.platform, release: 'Unknown', arch: process.arch },
+            graphics: { controllers: [{ model: 'Unknown' }] }
+        };
     }
 });
 // Save settings
@@ -105,5 +166,59 @@ electron_1.ipcMain.handle('get-settings', () => {
         theme: 'light',
         language: 'en'
     });
+});
+// Проверка первого запуска
+electron_1.ipcMain.handle('is-first-run', () => {
+    return isFirstRun;
+});
+// Получение настроек установки
+electron_1.ipcMain.handle('get-install-config', () => {
+    return store.get('install-config', {
+        installDir: path.join(electron_1.app.getPath('appData'), 'JSR'),
+        language: 'ru',
+        createDesktopShortcut: true,
+        createStartMenuShortcut: true,
+        autoStart: false
+    });
+});
+// Получение информации о Java
+electron_1.ipcMain.handle('get-java-info', async () => {
+    try {
+        const javaInfo = await si.versions();
+        return javaInfo;
+    }
+    catch (error) {
+        console.error('Error getting Java information:', error);
+        return { error: error.message };
+    }
+});
+// Открытие внешних ссылок
+electron_1.ipcMain.handle('open-external-link', async (event, url) => {
+    try {
+        await electron_1.shell.openExternal(url);
+        return true;
+    }
+    catch (error) {
+        console.error('Error opening external link:', error);
+        return false;
+    }
+});
+// Сохранение настроек установки
+electron_1.ipcMain.handle('save-install-config', (event, config) => {
+    store.set('install-config', config);
+    store.set('installed', true);
+    store.set('settings.language', config.language);
+    return true;
+});
+// Выбор директории установки
+electron_1.ipcMain.handle('select-install-directory', async () => {
+    const { canceled, filePaths } = await electron_1.dialog.showOpenDialog({
+        title: 'Выберите папку для установки JSR',
+        properties: ['openDirectory', 'createDirectory']
+    });
+    if (canceled || filePaths.length === 0) {
+        return null;
+    }
+    return filePaths[0];
 });
 //# sourceMappingURL=main.js.map

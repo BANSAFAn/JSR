@@ -84,7 +84,8 @@ ipcMain.handle('get-system-info', async () => {
     let cpuInfo = { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 };
     let memInfo = { total: 0 };
     let osInfo = { platform: 'Unknown', release: 'Unknown', arch: 'Unknown' };
-    let graphicsInfo = { controllers: [] };
+    // Используем тип, совместимый с возвращаемым значением si.graphics()
+    let graphicsInfo: { controllers: Array<{ model: string }> } = { controllers: [] };
     
     try {
       cpuInfo = await si.cpu();
