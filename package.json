@@ -107,7 +107,6 @@
       "multiLanguageInstaller": true,
       "installerLanguages": ["en", "ru", "uk", "de"],
       "include": "assets/nsis-translations.nsh",
-      "displayName": "JSR",
       "perMachine": true
     },
     "linux": {
