@@ -24,6 +24,19 @@ electronCompile:
   nodeModulesPath: []
   prune: true
   asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/assets/**/*"
+  - "**/locales/**/*"
+files:
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,website}"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!**/{.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 mac:
   category: public.app-category.utilities
   target:
@@ -71,6 +84,13 @@ nsis:
     - uk
     - de
   include: assets/nsis-translations.nsh
+  packElevateHelper: true
+  warningsAsErrors: false
+  unicode: true
+  differentialPackage: true
+  artifactBuildStarted: false
+  removePackageScripts: true
+  script: build/installer.nsh
 linux:
   target:
     - AppImage

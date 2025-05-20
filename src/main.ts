@@ -34,6 +34,29 @@ function createWindow(): void {
     titleBarStyle: 'hidden',
     frame: true
   });
+  
+  // Обработчики для кнопок управления окном
+  ipcMain.on('minimize-window', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
+  
+  ipcMain.on('maximize-window', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.restore();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+  
+  ipcMain.on('close-window', () => {
+    if (mainWindow) {
+      mainWindow.close();
+    }
+  });
 
   // Load index.html
   // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн

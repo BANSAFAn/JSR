@@ -4,14 +4,13 @@
   "description": "Application for determining the appropriate Java version for Minecraft",
   "main": "./dist/main.js",
   "scripts": {
-    "start": "tsc && electron .",
-    "dev": "tsc -w",
-    "prebuild": "tsc && node -e \"const fs=require('fs'); const path=require('path'); if(!fs.existsSync('dist/styles')) fs.mkdirSync('dist/styles', {recursive:true}); fs.cpSync('styles', 'dist/styles', {recursive:true}); if(!fs.existsSync('dist/locales')) fs.mkdirSync('dist/locales', {recursive:true}); fs.cpSync('locales', 'dist/locales', {recursive:true}); if(!fs.existsSync('dist/assets')) fs.mkdirSync('dist/assets', {recursive:true}); fs.cpSync('assets', 'dist/assets', {recursive:true}); fs.copyFileSync('index.html', 'dist/index.html');\" ",
-    "build": "npm run prebuild && electron-builder",
-    "build:win": "npm run prebuild && electron-builder --win",
-    "build:mac": "npm run prebuild && electron-builder --mac",
-    "build:linux": "npm run prebuild && electron-builder --linux",
-    "generate-release": "node generate-release.js",
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "tsc && electron-builder",
+    "build:win": "tsc && electron-builder --win --x64",
+    "build:mac": "tsc && electron-builder --mac",
+    "build:linux": "tsc && electron-builder --linux",
+    "build:optimized": "node build-optimized.js",
     "release": "npm run prebuild && node generate-release.js && electron-builder --publish always",
     "release:win": "npm run prebuild && node generate-release.js && electron-builder --win --publish always",
     "release:mac": "npm run prebuild && node generate-release.js && electron-builder --mac --publish always",
@@ -64,7 +63,10 @@
       "locales/**/*",
       "styles/**/*",
       "index.html",
-      "package.json"
+      "package.json",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,website}"
     ],
     "directories": {
       "output": "dist",
@@ -72,6 +74,11 @@
     },
     "compression": "maximum",
     "asar": true,
+    "asarUnpack": [
+      "**/*.node",
+      "**/assets/**/*",
+      "**/locales/**/*"
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": [

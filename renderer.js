@@ -285,6 +285,29 @@ function setupEventListeners() {
       });
     });
     
+    // Обработчики для кнопок управления окном
+    const minimizeBtn = document.getElementById('minimize-btn');
+    const maximizeBtn = document.getElementById('maximize-btn');
+    const closeBtn = document.getElementById('close-btn');
+    
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', () => {
+        ipcRenderer.send('minimize-window');
+      });
+    }
+    
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', () => {
+        ipcRenderer.send('maximize-window');
+      });
+    }
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        ipcRenderer.send('close-window');
+      });
+    }
+    
     // Изменение языка
     const languageSelect = document.getElementById('language-select');
     if (languageSelect) {
@@ -714,23 +737,35 @@ function applyTheme(theme) {
     // Добавляем анимацию перехода
     document.body.classList.add('theme-transition');
     
-    // Устанавливаем новую тему - исправленный путь к CSS
-    themeLink.setAttribute('href', `./styles/themes/${theme}.css`);
+    // Устанавливаем новую тему
+    const themePath = `./styles/themes/${theme}.css`;
+    console.log('Setting theme path:', themePath);
+    themeLink.setAttribute('href', themePath);
+    
+    // Обновляем класс body
+    const oldThemeClass = document.body.className;
     document.body.className = `theme-${theme} theme-transition`;
+    console.log('Updated body class from', oldThemeClass, 'to', document.body.className);
     
     // Удаляем класс анимации после завершения перехода
     setTimeout(() => {
       document.body.classList.remove('theme-transition');
+      console.log('Removed transition class, current body class:', document.body.className);
     }, 500);
     
     // Активация кнопки темы
     document.querySelectorAll('.theme-btn').forEach(btn => {
-      if (btn.getAttribute('data-theme') === theme) {
+      const btnTheme = btn.getAttribute('data-theme');
+      if (btnTheme === theme) {
         btn.classList.add('active');
+        console.log(`Activated ${btnTheme} theme button`);
       } else {
         btn.classList.remove('active');
       }
     });
+    
+    // Сохраняем тему в локальное хранилище для дополнительной надежности
+    localStorage.setItem('theme', theme);
     
     console.log('Theme applied successfully:', theme);
   } catch (error) {

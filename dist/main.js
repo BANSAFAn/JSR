@@ -66,6 +66,27 @@ function createWindow() {
         titleBarStyle: 'hidden',
         frame: true
     });
+    // Обработчики для кнопок управления окном
+    electron_1.ipcMain.on('minimize-window', () => {
+        if (mainWindow) {
+            mainWindow.minimize();
+        }
+    });
+    electron_1.ipcMain.on('maximize-window', () => {
+        if (mainWindow) {
+            if (mainWindow.isMaximized()) {
+                mainWindow.restore();
+            }
+            else {
+                mainWindow.maximize();
+            }
+        }
+    });
+    electron_1.ipcMain.on('close-window', () => {
+        if (mainWindow) {
+            mainWindow.close();
+        }
+    });
     // Load index.html
     // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
     const indexPath = electron_1.app.isPackaged
