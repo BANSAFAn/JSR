@@ -177,16 +177,19 @@ ipcMain.handle('get-java-installations', async () => {
     console.log('Java versions retrieved:', javaVersions);
     
     // Проверяем наличие информации о Java
-    if (!javaVersions || !javaVersions.java || !javaVersions.java.version) {
+    if (!javaVersions || !javaVersions.java) {
       console.log('No Java information found in system info');
       return [];
     }
     
+    // Определяем тип данных Java
+    const javaInfo = javaVersions.java as any;
+    
     // Формируем базовую информацию о Java
     const javaInstallation = {
-      version: javaVersions.java.version,
-      vendor: javaVersions.java.vendor || 'Unknown',
-      path: javaVersions.java.path || 'Unknown',
+      version: typeof javaInfo === 'string' ? javaInfo : (javaInfo.version || 'Unknown'),
+      vendor: typeof javaInfo === 'string' ? 'Unknown' : (javaInfo.vendor || 'Unknown'),
+      path: typeof javaInfo === 'string' ? 'Unknown' : (javaInfo.path || 'Unknown'),
       architecture: process.arch,
       isDefault: true
     };
