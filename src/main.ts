@@ -85,40 +85,47 @@ ipcMain.handle('get-system-info', async () => {
     let memInfo = { total: 0 };
     let osInfo = { platform: 'Unknown', release: 'Unknown', arch: 'Unknown' };
     // Используем тип, совместимый с возвращаемым значением si.graphics()
-    let graphicsInfo: { controllers: Array<{ model: string }> } = { controllers: [] };
+    let graphicsInfo: { controllers: Array<{ model: string }> } = { controllers: [{ model: 'Unknown' }] };
     
     try {
       cpuInfo = await si.cpu();
+      console.log('CPU info retrieved successfully:', cpuInfo);
     } catch (e) {
       console.error('Error getting CPU info:', e);
     }
     
     try {
       memInfo = await si.mem();
+      console.log('Memory info retrieved successfully:', memInfo);
     } catch (e) {
       console.error('Error getting memory info:', e);
     }
     
     try {
       osInfo = await si.osInfo();
+      console.log('OS info retrieved successfully:', osInfo);
     } catch (e) {
       console.error('Error getting OS info:', e);
     }
     
     try {
       graphicsInfo = await si.graphics();
+      console.log('Graphics info retrieved successfully:', graphicsInfo);
     } catch (e) {
       console.error('Error getting graphics info:', e);
       // Исправление типизации для контроллеров графики
       graphicsInfo = { controllers: [{ model: 'Unknown' }] };
     }
     
-    return {
+    const result = {
       cpu: cpuInfo,
       mem: memInfo,
       os: osInfo,
       graphics: graphicsInfo
     };
+    
+    console.log('Returning system info to renderer:', result);
+    return result;
   } catch (error) {
     console.error('Error getting system information:', error);
     // Возвращаем базовую информацию, чтобы интерфейс не сломался
@@ -161,13 +168,46 @@ ipcMain.handle('get-install-config', () => {
 });
 
 // Получение информации о Java
+ipcMain.handle('get-java-installations', async () => {
+  try {
+    console.log('Attempting to get Java installations...');
+    
+    // Получаем информацию о Java через системную информацию
+    const javaVersions = await si.versions();
+    console.log('Java versions retrieved:', javaVersions);
+    
+    // Проверяем наличие информации о Java
+    if (!javaVersions || !javaVersions.java || !javaVersions.java.version) {
+      console.log('No Java information found in system info');
+      return [];
+    }
+    
+    // Формируем базовую информацию о Java
+    const javaInstallation = {
+      version: javaVersions.java.version,
+      vendor: javaVersions.java.vendor || 'Unknown',
+      path: javaVersions.java.path || 'Unknown',
+      architecture: process.arch,
+      isDefault: true
+    };
+    
+    console.log('Returning Java installation:', javaInstallation);
+    return [javaInstallation];
+  } catch (error) {
+    console.error('Error getting Java installations:', error);
+    return [];
+  }
+});
+
+// Обратная совместимость для старого обработчика
 ipcMain.handle('get-java-info', async () => {
   try {
-    const javaInfo = await si.versions();
-    return javaInfo;
+    console.log('Old get-java-info handler called, redirecting to new implementation');
+    const javaVersions = await si.versions();
+    return javaVersions;
   } catch (error) {
-    console.error('Error getting Java information:', error);
-    return { error: (error as Error).message };
+    console.error('Error in get-java-info handler:', error);
+    return { java: { version: 'Unknown' }, error: (error as Error).message };
   }
 });
 

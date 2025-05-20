@@ -187,77 +187,285 @@ async function getSystemInfo() {
 
 // Отображение системной информации
 function displaySystemInfo(info) {
-  document.getElementById('cpu-info').textContent = `${info.cpu.manufacturer} ${info.cpu.brand} (${info.cpu.cores} cores)`;
-  
-  const totalMemGB = Math.round(info.mem.total / (1024 * 1024 * 1024));
-  document.getElementById('memory-info').textContent = `${totalMemGB} GB`;
-  
-  document.getElementById('os-info').textContent = `${info.os.platform} ${info.os.release} (${info.os.arch})`;
-  
-  const gpuInfo = info.graphics.controllers.map(gpu => gpu.model).join(', ');
-  document.getElementById('gpu-info').textContent = gpuInfo || 'Unknown';
+  try {
+    console.log('Displaying system info:', info);
+    
+    // Проверяем наличие элементов и данных
+    const cpuInfoElement = document.getElementById('cpu-info');
+    const memoryInfoElement = document.getElementById('memory-info');
+    const osInfoElement = document.getElementById('os-info');
+    const gpuInfoElement = document.getElementById('gpu-info');
+    
+    if (!info) {
+      console.error('System info is undefined or null');
+      if (cpuInfoElement) cpuInfoElement.textContent = 'Не удалось получить информацию';
+      if (memoryInfoElement) memoryInfoElement.textContent = 'Не удалось получить информацию';
+      if (osInfoElement) osInfoElement.textContent = 'Не удалось получить информацию';
+      if (gpuInfoElement) gpuInfoElement.textContent = 'Не удалось получить информацию';
+      return;
+    }
+    
+    // CPU информация
+    if (cpuInfoElement && info.cpu) {
+      const cpuManufacturer = info.cpu.manufacturer || 'Unknown';
+      const cpuBrand = info.cpu.brand || 'Unknown';
+      const cpuCores = info.cpu.cores || 0;
+      cpuInfoElement.textContent = `${cpuManufacturer} ${cpuBrand} (${cpuCores} ${i18next.t('cores') || 'cores'})`;
+    } else if (cpuInfoElement) {
+      cpuInfoElement.textContent = 'Не удалось получить информацию о CPU';
+    }
+    
+    // Память
+    if (memoryInfoElement && info.mem && info.mem.total) {
+      const totalMemGB = Math.round(info.mem.total / (1024 * 1024 * 1024));
+      memoryInfoElement.textContent = `${totalMemGB} GB`;
+    } else if (memoryInfoElement) {
+      memoryInfoElement.textContent = 'Не удалось получить информацию о памяти';
+    }
+    
+    // Операционная система
+    if (osInfoElement && info.os) {
+      const osPlatform = info.os.platform || 'Unknown';
+      const osRelease = info.os.release || 'Unknown';
+      const osArch = info.os.arch || 'Unknown';
+      osInfoElement.textContent = `${osPlatform} ${osRelease} (${osArch})`;
+    } else if (osInfoElement) {
+      osInfoElement.textContent = 'Не удалось получить информацию об ОС';
+    }
+    
+    // Графика
+    if (gpuInfoElement && info.graphics && info.graphics.controllers && info.graphics.controllers.length > 0) {
+      const gpuModels = info.graphics.controllers.map(gpu => gpu.model || 'Unknown').join(', ');
+      gpuInfoElement.textContent = gpuModels;
+    } else if (gpuInfoElement) {
+      gpuInfoElement.textContent = 'Не удалось получить информацию о графике';
+    }
+    
+    console.log('System info displayed successfully');
+  } catch (error) {
+    console.error('Error displaying system information:', error);
+    // Устанавливаем запасные значения в случае ошибки
+    const elements = ['cpu-info', 'memory-info', 'os-info', 'gpu-info'];
+    elements.forEach(id => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = 'Ошибка при отображении информации';
+    });
+  }
 }
 
 // Настройка обработчиков событий
 function setupEventListeners() {
-  // Переключение темы
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const theme = btn.getAttribute('data-theme');
-      applyTheme(theme);
-      saveSettings({ theme });
-    });
-  });
-  
-  // Изменение языка
-  document.getElementById('language-select').addEventListener('change', (e) => {
-    const language = e.target.value;
-    changeLanguage(language);
-    saveSettings({ language });
-  });
-  
-  // Выбор версии Minecraft
-  document.getElementById('minecraft-version').addEventListener('change', (e) => {
-    selectedMinecraftVersion = e.target.value;
-    const customVersionContainer = document.getElementById('custom-version-container');
+  try {
+    console.log('Setting up event listeners');
     
-    if (selectedMinecraftVersion === 'custom') {
-      customVersionContainer.classList.remove('hidden');
-    } else {
-      customVersionContainer.classList.add('hidden');
+    // Переключение темы
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme');
+        console.log('Theme button clicked:', theme);
+        applyTheme(theme);
+        saveSettings({ theme });
+      });
+    });
+    
+    // Изменение языка
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect) {
+      languageSelect.addEventListener('change', (e) => {
+        const language = e.target.value;
+        console.log('Language changed to:', language);
+        changeLanguage(language);
+        saveSettings({ language });
+      });
+    }
+    
+    // Боковая панель и вкладки
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const mainButtons = document.querySelectorAll('.sidebar-main-btn');
+    
+    if (sidebarToggle && sidebar) {
+      sidebarToggle.addEventListener('click', () => {
+        console.log('Sidebar toggle clicked');
+        sidebar.classList.toggle('collapsed');
+      });
+    }
+    
+    if (mainButtons.length > 0) {
+      mainButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.getAttribute('data-action');
+          console.log('Sidebar button clicked:', action);
+          activateTab(action);
+        });
+      });
+    }
+    
+    // Загрузка информации о Java при переключении на соответствующую вкладку
+    const searchJavaBtn = document.getElementById('search-java-btn');
+    if (searchJavaBtn) {
+      searchJavaBtn.addEventListener('click', async () => {
+        console.log('Loading Java installations...');
+        try {
+          const javaInstallations = await ipcRenderer.invoke('get-java-installations');
+          console.log('Java installations loaded:', javaInstallations);
+          renderJavaInstallations(javaInstallations);
+        } catch (error) {
+          console.error('Error loading Java installations:', error);
+          renderJavaError();
+        }
+      });
+    }
+    
+    console.log('Event listeners set up successfully');
+  } catch (error) {
+    console.error('Error setting up event listeners:', error);
+  }
+}
+
+// Активация вкладки
+function activateTab(action) {
+  try {
+    console.log('Activating tab:', action);
+    
+    // Получаем все кнопки и контенты
+    const buttons = document.querySelectorAll('.sidebar-main-btn');
+    const contents = document.querySelectorAll('.sidebar-section');
+    
+    // Деактивируем все
+    buttons.forEach(btn => btn.classList.remove('active'));
+    contents.forEach(content => content.classList.remove('active'));
+    
+    // Активируем нужную вкладку
+    if (action === 'info') {
+      document.getElementById('info-btn').classList.add('active');
+      document.getElementById('info-content').classList.add('active');
+    } else if (action === 'search-java') {
+      document.getElementById('search-java-btn').classList.add('active');
+      document.getElementById('search-java-content').classList.add('active');
+    }
+    
+    console.log('Tab activated successfully:', action);
+  } catch (error) {
+    console.error('Error activating tab:', error);
+  }
+}
+
+// Отображение информации о Java
+function renderJavaInstallations(installations) {
+  try {
+    console.log('Rendering Java installations:', installations);
+    const javaListElement = document.getElementById('java-list');
+    
+    if (!javaListElement) {
+      console.error('Java list element not found');
+      return;
+    }
+    
+    // Показываем индикатор загрузки
+    javaListElement.innerHTML = `<div class="loading-java fade-in"><div class="spinner small"></div><p>${i18next.t('loadingJava')}</p></div>`;
+    
+    // Если нет установленных Java
+    if (!installations || installations.length === 0) {
+      javaListElement.innerHTML = `<div class="no-java-message fade-in">${i18next.t('noJavaFound')}</div>`;
+      return;
+    }
+    
+    // Очищаем список
+    javaListElement.innerHTML = '';
+    
+    // Добавляем каждую установку Java
+    installations.forEach((java, index) => {
+      const javaItem = document.createElement('div');
+      javaItem.className = 'java-item fade-in';
+      javaItem.dataset.version = java.version;
+      javaItem.dataset.vendor = java.vendor;
+      javaItem.style.animationDelay = `${index * 0.1}s`;
+      
+      javaItem.innerHTML = `
+        <div class="java-item-header">
+          <span class="java-version">${java.version}</span>
+          ${java.isDefault ? `<span class="java-default-badge">${i18next.t('default')}</span>` : ''}
+        </div>
+        <div class="java-item-details">
+          <div class="java-detail">
+            <span class="detail-label">${i18next.t('vendor')}:</span>
+            <span class="detail-value">${java.vendor}</span>
+          </div>
+          <div class="java-detail">
+            <span class="detail-label">${i18next.t('architecture')}:</span>
+            <span class="detail-value">${java.architecture}</span>
+          </div>
+          <div class="java-detail">
+            <span class="detail-label">${i18next.t('path')}:</span>
+            <span class="detail-value java-path">${java.path}</span>
+          </div>
+        </div>
+      `;
+      
+      javaListElement.appendChild(javaItem);
+    });
+    
+    console.log('Java installations rendered successfully');
+  } catch (error) {
+    console.error('Error rendering Java installations:', error);
+    renderJavaError();
+  }
+}
+
+// Отображение ошибки при загрузке Java
+function renderJavaError() {
+  try {
+    const javaListElement = document.getElementById('java-list');
+    if (javaListElement) {
+      javaListElement.innerHTML = `<div class="error-message">${i18next.t('javaLoadError')}</div>`;
+    }
+  } catch (error) {
+    console.error('Error rendering Java error message:', error);
+  }
+}
+
+// Выбор версии Minecraft
+document.getElementById('minecraft-version').addEventListener('change', (e) => {
+  selectedMinecraftVersion = e.target.value;
+  const customVersionContainer = document.getElementById('custom-version-container');
+  
+  if (selectedMinecraftVersion === 'custom') {
+    customVersionContainer.classList.remove('hidden');
+  } else {
+    customVersionContainer.classList.add('hidden');
+  }
+});
+
+// Ввод пользовательской версии
+document.getElementById('custom-version-input').addEventListener('input', (e) => {
+  customVersion = e.target.value.trim();
+});
+
+// Кнопка анализа
+document.getElementById('analyze-btn').addEventListener('click', () => {
+  analyzeJavaRequirements();
+});
+
+// Переключение разделов в боковой панели
+document.querySelectorAll('.sidebar-main-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const action = btn.getAttribute('data-action');
+    
+    // Активация кнопки
+    document.querySelectorAll('.sidebar-main-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Показ содержимого раздела
+    document.querySelectorAll('.sidebar-section').forEach(section => section.classList.remove('active'));
+    
+    if (action === 'info') {
+      document.getElementById('info-content').classList.add('active');
+    } else if (action === 'search-java') {
+      document.getElementById('search-java-content').classList.add('active');
     }
   });
-  
-  // Ввод пользовательской версии
-  document.getElementById('custom-version-input').addEventListener('input', (e) => {
-    customVersion = e.target.value.trim();
-  });
-  
-  // Кнопка анализа
-  document.getElementById('analyze-btn').addEventListener('click', () => {
-    analyzeJavaRequirements();
-  });
-  
-  // Переключение разделов в боковой панели
-  document.querySelectorAll('.sidebar-main-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const action = btn.getAttribute('data-action');
-      
-      // Активация кнопки
-      document.querySelectorAll('.sidebar-main-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      // Показ содержимого раздела
-      document.querySelectorAll('.sidebar-section').forEach(section => section.classList.remove('active'));
-      
-      if (action === 'info') {
-        document.getElementById('info-content').classList.add('active');
-      } else if (action === 'search-java') {
-        document.getElementById('search-java-content').classList.add('active');
-      }
-    });
-  });
-}
+});
 
 // Анализ требований к Java
 function analyzeJavaRequirements() {
@@ -382,17 +590,39 @@ function displayResults(javaInfo, reason) {
 
 // Применение темы
 function applyTheme(theme) {
-  const themeLink = document.getElementById('theme-css');
-  themeLink.href = `styles/themes/${theme}.css`;
-  
-  // Активация кнопки темы
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    if (btn.getAttribute('data-theme') === theme) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
+  try {
+    console.log('Applying theme:', theme);
+    const themeLink = document.getElementById('theme-css');
+    if (!themeLink) {
+      console.error('Theme CSS link element not found');
+      return;
     }
-  });
+    
+    // Добавляем анимацию перехода
+    document.body.classList.add('theme-transition');
+    
+    // Устанавливаем новую тему
+    themeLink.href = `styles/themes/${theme}.css`;
+    document.body.className = `theme-${theme} theme-transition`;
+    
+    // Удаляем класс анимации после завершения перехода
+    setTimeout(() => {
+      document.body.classList.remove('theme-transition');
+    }, 500);
+    
+    // Активация кнопки темы
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      if (btn.getAttribute('data-theme') === theme) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    console.log('Theme applied successfully:', theme);
+  } catch (error) {
+    console.error('Error applying theme:', error);
+  }
 }
 
 // Изменение языка
