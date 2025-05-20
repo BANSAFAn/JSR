@@ -6,12 +6,13 @@ const path = require('path');
 // Функция для создания релиза на GitHub с использованием GitHub API
 async function createGitHubRelease() {
   try {
-    // Проверяем наличие токена GitHub
-    const token = process.env.GITHUB_TOKEN;
+    // Проверяем наличие токена GitHub (поддержка нескольких переменных окружения)
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.RELEASE_TOKEN;
     if (!token) {
-      console.error('GITHUB_TOKEN не найден в переменных окружения');
+      console.error('Токен GitHub не найден в переменных окружения');
       console.error('Установите токен GitHub для создания релизов:');
       console.error('export GITHUB_TOKEN=your_github_token');
+      console.error('или используйте GH_TOKEN/RELEASE_TOKEN с персональным токеном доступа (PAT)');
       process.exit(1);
     }
 
