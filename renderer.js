@@ -98,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Получение системной информации
   await getSystemInfo();
   
+  // Инициализация electron IPC
+  const { ipcRenderer } = require('electron');
+  
   // Обработчики событий
   setupEventListeners();
   
@@ -176,11 +179,24 @@ function showFirstRunMessage() {
 async function getSystemInfo() {
   showLoading(true);
   try {
-    systemInfo = await ipcRenderer.invoke('get-system-info');
-    displaySystemInfo(systemInfo);
+    // Добавляем задержку для стабильного получения данных
+    setTimeout(async () => {
+      try {
+        console.log('Запрос системной информации...');
+        const { ipcRenderer } = require('electron');
+        systemInfo = await ipcRenderer.invoke('get-system-info');
+        console.log('Получена системная информация:', systemInfo);
+        displaySystemInfo(systemInfo);
+      } catch (innerError) {
+        console.error('Внутренняя ошибка при получении системной информации:', innerError);
+        displaySystemInfoError();
+      } finally {
+        showLoading(false);
+      }
+    }, 1000);
   } catch (error) {
     console.error('Ошибка при получении системной информации:', error);
-  } finally {
+    displaySystemInfoError();
     showLoading(false);
   }
 }
@@ -198,10 +214,7 @@ function displaySystemInfo(info) {
     
     if (!info) {
       console.error('System info is undefined or null');
-      if (cpuInfoElement) cpuInfoElement.textContent = 'Не удалось получить информацию';
-      if (memoryInfoElement) memoryInfoElement.textContent = 'Не удалось получить информацию';
-      if (osInfoElement) osInfoElement.textContent = 'Не удалось получить информацию';
-      if (gpuInfoElement) gpuInfoElement.textContent = 'Не удалось получить информацию';
+      displaySystemInfoError();
       return;
     }
     
@@ -244,13 +257,17 @@ function displaySystemInfo(info) {
     console.log('System info displayed successfully');
   } catch (error) {
     console.error('Error displaying system information:', error);
-    // Устанавливаем запасные значения в случае ошибки
-    const elements = ['cpu-info', 'memory-info', 'os-info', 'gpu-info'];
-    elements.forEach(id => {
-      const element = document.getElementById(id);
-      if (element) element.textContent = 'Ошибка при отображении информации';
-    });
+    displaySystemInfoError();
   }
+}
+
+// Отображение ошибки системной информации
+function displaySystemInfoError() {
+  const elements = ['cpu-info', 'memory-info', 'os-info', 'gpu-info'];
+  elements.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = 'Ошибка при отображении информации';
+  });
 }
 
 // Настройка обработчиков событий
@@ -301,6 +318,12 @@ function setupEventListeners() {
       });
     }
     
+    // Добавляем обработчики для меню
+    setupMenuHandlers();
+    
+    // Загружаем информацию о версиях Minecraft и Java
+    loadMinecraftAndJavaVersions();
+    
     // Загрузка информации о Java при переключении на соответствующую вкладку
     const searchJavaBtn = document.getElementById('search-java-btn');
     if (searchJavaBtn) {
@@ -314,6 +337,15 @@ function setupEventListeners() {
           console.error('Error loading Java installations:', error);
           renderJavaError();
         }
+      });
+    }
+    
+    // Обработчик для кнопки анализа
+    const analyzeBtn = document.getElementById('analyze-btn');
+    if (analyzeBtn) {
+      analyzeBtn.addEventListener('click', () => {
+        console.log('Analyze button clicked');
+        analyzeJavaRequirements();
       });
     }
     
@@ -435,6 +467,8 @@ document.getElementById('minecraft-version').addEventListener('change', (e) => {
   } else {
     customVersionContainer.classList.add('hidden');
   }
+  
+  console.log('Minecraft version changed to:', selectedMinecraftVersion);
 });
 
 // Ввод пользовательской версии
@@ -442,30 +476,109 @@ document.getElementById('custom-version-input').addEventListener('input', (e) =>
   customVersion = e.target.value.trim();
 });
 
-// Кнопка анализа
-document.getElementById('analyze-btn').addEventListener('click', () => {
-  analyzeJavaRequirements();
-});
+// Кнопка анализа - обработчик перенесен в setupEventListeners
 
-// Переключение разделов в боковой панели
-document.querySelectorAll('.sidebar-main-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const action = btn.getAttribute('data-action');
+// Эта функция перенесена в setupEventListeners
+
+// Функция настройки обработчиков меню
+function setupMenuHandlers() {
+  try {
+    console.log('Setting up menu handlers');
     
-    // Активация кнопки
-    document.querySelectorAll('.sidebar-main-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    // Показ содержимого раздела
-    document.querySelectorAll('.sidebar-section').forEach(section => section.classList.remove('active'));
-    
-    if (action === 'info') {
-      document.getElementById('info-content').classList.add('active');
-    } else if (action === 'search-java') {
-      document.getElementById('search-java-content').classList.add('active');
+    // Обработчик для меню
+    const menuItems = document.querySelectorAll('.menu-item');
+    if (menuItems && menuItems.length > 0) {
+      menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          const action = item.getAttribute('data-action');
+          console.log('Menu item clicked:', action);
+          
+          if (action === 'settings') {
+            showSettings();
+          } else if (action === 'about') {
+            showAbout();
+          } else if (action === 'exit') {
+            window.close();
+          }
+          
+          e.stopPropagation();
+        });
+      });
+    } else {
+      console.log('No menu items found');
     }
-  });
-});
+    
+    // Закрытие меню при клике вне его
+    document.addEventListener('click', (e) => {
+      const menu = document.querySelector('.menu');
+      if (menu && !menu.contains(e.target)) {
+        menu.classList.remove('active');
+      }
+    });
+    
+    console.log('Menu handlers set up successfully');
+  } catch (error) {
+    console.error('Error setting up menu handlers:', error);
+  }
+}
+
+// Функция загрузки информации о версиях Minecraft и Java
+function loadMinecraftAndJavaVersions() {
+  try {
+    console.log('Loading Minecraft and Java versions');
+    
+    // Получаем информацию о Java
+    setTimeout(async () => {
+      try {
+        const javaInstallations = await ipcRenderer.invoke('get-java-installations');
+        console.log('Java installations loaded:', javaInstallations);
+        
+        // Отображаем информацию о Java в системной информации
+        const javaInfoElement = document.createElement('div');
+        javaInfoElement.className = 'info-card';
+        javaInfoElement.innerHTML = `
+          <h3 data-i18n="java">Java</h3>
+          <p id="java-info">${javaInstallations && javaInstallations.length > 0 ? 
+            javaInstallations[0].version : 'Не установлено'}</p>
+        `;
+        
+        const systemInfoContainer = document.querySelector('.system-info-container');
+        if (systemInfoContainer) {
+          systemInfoContainer.appendChild(javaInfoElement);
+        }
+        
+        // Получаем информацию о Minecraft
+        // Здесь можно добавить код для получения установленных версий Minecraft
+        // Например, через проверку папок .minecraft
+        
+        const minecraftInfoElement = document.createElement('div');
+        minecraftInfoElement.className = 'info-card';
+        minecraftInfoElement.innerHTML = `
+          <h3 data-i18n="minecraft">Minecraft</h3>
+          <p id="minecraft-info">Нажмите кнопку анализа для проверки</p>
+        `;
+        
+        if (systemInfoContainer) {
+          systemInfoContainer.appendChild(minecraftInfoElement);
+        }
+        
+        // Обновляем переводы для новых элементов
+        if (i18next && i18next.isInitialized) {
+          document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (key) element.textContent = i18next.t(key);
+          });
+        }
+        
+        console.log('Minecraft and Java versions loaded successfully');
+      } catch (error) {
+        console.error('Error loading Minecraft and Java versions:', error);
+      }
+    }, 1500);
+  } catch (error) {
+    console.error('Error in loadMinecraftAndJavaVersions:', error);
+  }
+}
 
 // Анализ требований к Java
 function analyzeJavaRequirements() {
@@ -601,8 +714,8 @@ function applyTheme(theme) {
     // Добавляем анимацию перехода
     document.body.classList.add('theme-transition');
     
-    // Устанавливаем новую тему
-    themeLink.href = `styles/themes/${theme}.css`;
+    // Устанавливаем новую тему - исправленный путь к CSS
+    themeLink.setAttribute('href', `./styles/themes/${theme}.css`);
     document.body.className = `theme-${theme} theme-transition`;
     
     // Удаляем класс анимации после завершения перехода

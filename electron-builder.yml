@@ -13,19 +13,38 @@ directories:
   buildResources: assets
 compression: maximum
 asar: true
+fileAssociations: []
+artifactBuildStarted: false
+removePackageScripts: true
+forceCodeSigning: false
+packageCache: false
+# Оптимизация размера сборок
+electronCompile:
+  cache: false
+  nodeModulesPath: []
+  prune: true
+  asar: true
 mac:
   category: public.app-category.utilities
   target:
     - dmg
-    - zip
+  artifactName: ${productName}-${version}.${ext}
+  darkModeSupport: true
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  minimumSystemVersion: "10.11.0"
+  compression: normal
 win:
   target:
     - target: nsis
       arch:
         - x64
-    - portable
   icon: assets/images/Logo.png
   artifactName: ${productName}-Setup-${version}.${ext}
+  compression: maximum
+  signAndEditExecutable: false
+  signDlls: false
+  publisherName: BANSAFAn
 nsis:
   oneClick: false
   perMachine: false
@@ -55,8 +74,11 @@ nsis:
 linux:
   target:
     - AppImage
-    - deb
   category: Utility
+  artifactName: ${productName}-${version}.${ext}
+  synopsis: "Java Selection for Minecraft"
+  compression: maximum
+  executableName: jsr
 publish:
   - provider: github
     owner: BANSAFAn
