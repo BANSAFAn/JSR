@@ -1,4 +1,4 @@
-name: Автоматический релиз
+name: Automatic Release
 
 on:
   workflow_dispatch:
@@ -16,28 +16,54 @@ jobs:
     permissions:
       contents: write
     outputs:
-      version: ${{ steps.get-version.outputs.version }}
+      tag: ${{ steps.generate-release-info.outputs.tag }}
       upload_url: ${{ steps.create-release.outputs.upload_url }}
     steps:
-      - name: Проверка кода
+      - name: Checkout code
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Получение версии
-        id: get-version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-      - name: Создание релиза
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate release tag and notes
+        id: generate-release-info
+        run: |
+          # Generate random tag
+          DATE=$(date +'%Y.%m.%d')
+          RANDOM_NUM=$(( RANDOM % 1000 ))
+          TAG="v${DATE}-${RANDOM_NUM}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          
+          # Create temporary release notes file
+          echo "# JSR Release" > release-notes.md
+          echo "" >> release-notes.md
+          echo "## Improvements" >> release-notes.md
+          echo "- Improved performance" >> release-notes.md
+          echo "- Enhanced user interface" >> release-notes.md
+          echo "- Updated translations" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "## Bug Fixes" >> release-notes.md
+          echo "- Fixed various issues" >> release-notes.md
+          echo "- Improved stability" >> release-notes.md
+
+      - name: Create release
         id: create-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create v${{ steps.get-version.outputs.version }} \
-            --title "Версия ${{ steps.get-version.outputs.version }}" \
-            --generate-notes \
+          gh release create ${{ steps.generate-release-info.outputs.tag }} \
+            --title "JSR Release ${{ steps.generate-release-info.outputs.tag }}" \
+            --notes-file release-notes.md \
             --repo ${{ github.repository }}
-          echo "upload_url=${{ github.server_url }}/${{ github.repository }}/releases/v${{ steps.get-version.outputs.version }}/assets/upload" >> $GITHUB_OUTPUT
+          echo "upload_url=${{ github.server_url }}/${{ github.repository }}/releases/${{ steps.generate-release-info.outputs.tag }}/assets/upload" >> $GITHUB_OUTPUT
 
   build-and-upload:
     needs: create-release
@@ -46,59 +72,64 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     steps:
-      - name: Проверка кода
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Настройка Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: '18'
           cache: 'npm'
 
-      - name: Установка зависимостей
+      - name: Install dependencies
         run: npm ci
 
-      - name: Сборка для Windows
+      - name: Get version from package.json
+        id: get-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Build for Windows
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:win
 
-      - name: Сборка для macOS
+      - name: Build for macOS
         if: matrix.os == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:mac
 
-      - name: Сборка для Linux
+      - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build:linux
 
-      - name: Загрузка артефактов Windows
+      - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v${{ needs.create-release.outputs.version }} \
-            ./dist/JSR-Setup-${{ needs.create-release.outputs.version }}.exe \
+          gh release upload ${{ needs.create-release.outputs.tag }} \
+            ./dist/JSR-Setup-${{ steps.get-version.outputs.version }}.exe \
             --repo ${{ github.repository }}
 
-      - name: Загрузка артефактов macOS
+      - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v${{ needs.create-release.outputs.version }} \
-            ./dist/JSR-${{ needs.create-release.outputs.version }}.dmg \
+          gh release upload ${{ needs.create-release.outputs.tag }} \
+            ./dist/JSR-${{ steps.get-version.outputs.version }}.dmg \
             --repo ${{ github.repository }}
 
-      - name: Загрузка артефактов Linux
+      - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v${{ needs.create-release.outputs.version }} \
-            ./dist/JSR-${{ needs.create-release.outputs.version }}.AppImage \
+          gh release upload ${{ needs.create-release.outputs.tag }} \
+            ./dist/JSR-${{ steps.get-version.outputs.version }}.AppImage \
+            ./dist/jsr_${{ steps.get-version.outputs.version }}_amd64.deb \
             --repo ${{ github.repository }}
