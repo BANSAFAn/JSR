@@ -3,6 +3,7 @@ import * as path from 'path';
 import Store from 'electron-store';
 import * as si from 'systeminformation';
 import * as fs from 'fs';
+import { SplashScreen } from './splash-screen';
 
 // Initialize settings storage
 const store = new Store();
@@ -203,10 +204,11 @@ ipcMain.handle('get-system-info', async () => {
 ipcMain.handle('get-java-info', async () => {
   try {
     // Получаем список установленных программ
+    // @ts-ignore - Используем метод programs, который может отсутствовать в типах
     const apps = await si.programs();
     
     // Фильтруем только Java
-    const javaInstallations = apps.filter(app => 
+    const javaInstallations = apps.filter((app: any) => 
       app.name.toLowerCase().includes('java') || 
       app.name.toLowerCase().includes('jdk') || 
       app.name.toLowerCase().includes('jre')

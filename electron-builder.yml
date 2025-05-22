@@ -29,7 +29,7 @@ forceCodeSigning: false
 packageCache: false
 # Оптимизация размера сборок
 electronCompile:
-  cache: false
+  cache: true
   nodeModulesPath: []
   prune: true
   asar: true
@@ -59,8 +59,8 @@ win:
   publisherName: BANSAFAn
   # Оптимизация для Windows
   legalTrademarks: "BANSAFAn"
-  # Включаем сжатие исполняемых файлов
-  rfc3161TimeStampServer: "http://timestamp.digicert.com"
+  # Отключаем подписывание кода
+  forceCodeSigning: false
   # Дополнительные настройки для уменьшения размера
   extraResources: 
     - from: "assets/images/Logo.png"
@@ -85,6 +85,7 @@ nsis:
   displayLanguageSelector: true
   menuCategory: true
   multiLanguageInstaller: true
+  # Включаем многоязычный установщик
   installerLanguages:
     - en
     - ru
@@ -93,19 +94,18 @@ nsis:
   include: 
     - assets/nsis-translations.nsh
     - assets/installer.nsh
-  packElevateHelper: true
+  packElevateHelper: false
   warningsAsErrors: false
   unicode: true
   differentialPackage: false
   artifactBuildStarted: false
   removePackageScripts: true
-  # Максимальное сжатие установщика
-  compression: maximum
-  # Использование 7z для лучшего сжатия
-  compressorName: 7z
-  # Использование максимального уровня сжатия
+  # Оптимальное сжатие установщика
+  compression: normal
+  # Использование стандартного компрессора NSIS
+  compressorName: zlib
   compressorOptions:
-    solid: true
+    solid: false
     level: 9
   # Современный интерфейс установщика
   modernUI: true

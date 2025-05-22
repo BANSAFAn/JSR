@@ -256,7 +256,7 @@ function displaySystemInfo(): void {
   
   if (gpuInfoElement && systemInfo.graphics && systemInfo.graphics.controllers && systemInfo.graphics.controllers.length > 0) {
     // Показываем информацию о всех видеокартах
-    const gpuInfo = systemInfo.graphics.controllers.map(controller => controller.model).join(', ');
+    const gpuInfo = systemInfo.graphics.controllers.map((controller: any) => controller.model).join(', ');
     gpuInfoElement.textContent = gpuInfo;
   }
 }
@@ -269,7 +269,7 @@ function displayJavaInfo(javaInfo: any[]): void {
   // Очищаем список
   javaListElement.innerHTML = '';
   
-  if (javaInfo.length === 0 || javaInfo.error) {
+  if (javaInfo.length === 0 || (javaInfo as any).error) {
     const noJavaElement = document.createElement('div');
     noJavaElement.className = 'no-java-info';
     noJavaElement.textContent = i18next.t('noJavaFound');
@@ -447,7 +447,6 @@ function setupEventListeners(): void {
       }
     });
   });
-}
 }
 
 // Toggle custom version input visibility
