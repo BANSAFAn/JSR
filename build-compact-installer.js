@@ -6,6 +6,8 @@ const exec = promisify(require('child_process').exec);
 
 console.log('Начинаем сборку компактного установщика JSR...');
 
+// Версия скрипта для оптимизированной сборки
+
 // Функция для проверки и создания необходимых изображений для установщика
 async function prepareInstallerImages() {
   const imagesDir = path.join(__dirname, 'assets', 'images');

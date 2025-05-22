@@ -2,14 +2,21 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' file:; font-src 'self' file:">
-  <title>JSR</title>
-  <link rel="stylesheet" href="./styles/main.css">
-  <link rel="stylesheet" href="./styles/installer.css">
-  <link rel="stylesheet" href="./styles/themes/light.css" id="theme-css">
-  <link rel="icon" href="assets/images/Logo.png" type="image/png">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'; img-src 'self' https:; style-src 'self' 'unsafe-inline'">
+  <link rel="stylesheet" href="styles/main.css">
+  <title>JSR by BANSAFAn</title>
 </head>
-<body>
+<body class="theme-light">
+  <!-- Заголовок с кнопками управления окном -->
+  <header class="window-header">
+    <div class="app-title">JSR by BANSAFAn</div>
+    <div class="window-controls">
+      <button id="minimize-btn" class="window-control-btn">_</button>
+      <button id="maximize-btn" class="window-control-btn">□</button>
+      <button id="close-btn" class="window-control-btn">×</button>
+    </div>
+  </header>
   <div class="app-container">
     <!-- Кнопка переключения боковой панели -->
     <button id="sidebar-toggle" class="sidebar-toggle">

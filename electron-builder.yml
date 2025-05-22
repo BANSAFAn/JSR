@@ -7,7 +7,16 @@ files:
   - locales/**/*
   - styles/**/*
   - index.html
+  - splash.html
   - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,website}"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!**/{.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 directories:
   output: dist
   buildResources: assets
@@ -24,20 +33,12 @@ electronCompile:
   nodeModulesPath: []
   prune: true
   asar: true
+# Оптимизация размера сборки - исключаем только необходимые файлы из asar архива
 asarUnpack:
   - "**/*.node"
   - "**/assets/images/AppIcon.ico"
   - "**/assets/images/installer-sidebar.png"
   - "**/locales/**/*"
-files:
-  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
-  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
-  - "!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,website}"
-  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
-  - "!**/{.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
-  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
-  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
-  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
 mac:
   category: public.app-category.utilities
   target:
@@ -56,6 +57,14 @@ win:
   signAndEditExecutable: false
   signDlls: false
   publisherName: BANSAFAn
+  # Оптимизация для Windows
+  legalTrademarks: "BANSAFAn"
+  # Включаем сжатие исполняемых файлов
+  rfc3161TimeStampServer: "http://timestamp.digicert.com"
+  # Дополнительные настройки для уменьшения размера
+  extraResources: 
+    - from: "assets/images/Logo.png"
+      to: "Logo.png"
 nsis:
   oneClick: false
   perMachine: true
@@ -81,7 +90,9 @@ nsis:
     - ru
     - uk
     - de
-  include: assets/nsis-translations.nsh
+  include: 
+    - assets/nsis-translations.nsh
+    - assets/installer.nsh
   packElevateHelper: true
   warningsAsErrors: false
   unicode: true
@@ -90,11 +101,16 @@ nsis:
   removePackageScripts: true
   # Максимальное сжатие установщика
   compression: maximum
-  # Использование bzip2 для лучшего сжатия
+  # Использование 7z для лучшего сжатия
+  compressorName: 7z
+  # Использование максимального уровня сжатия
   compressorOptions:
     solid: true
     level: 9
-  script: assets/installer.nsh
+  # Современный интерфейс установщика
+  modernUI: true
+  # Красивая анимация установки
+  installerSplashImage: assets/images/installer-sidebar.png
 linux:
   target:
     - AppImage

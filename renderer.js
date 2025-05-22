@@ -214,7 +214,7 @@ function displaySystemInfo(info) {
     
     if (!info) {
       console.error('System info is undefined or null');
-      displaySystemInfoError();
+      displaySystemInfoError(i18next.t('systemInfoError') || 'Ошибка при получении системной информации');
       return;
     }
     
@@ -223,17 +223,24 @@ function displaySystemInfo(info) {
       const cpuManufacturer = info.cpu.manufacturer || 'Unknown';
       const cpuBrand = info.cpu.brand || 'Unknown';
       const cpuCores = info.cpu.cores || 0;
-      cpuInfoElement.textContent = `${cpuManufacturer} ${cpuBrand} (${cpuCores} ${i18next.t('cores') || 'cores'})`;
+      const cpuSpeed = info.cpu.speed ? `${info.cpu.speed} GHz` : '';
+      cpuInfoElement.textContent = `${cpuManufacturer} ${cpuBrand} ${cpuSpeed} (${cpuCores} ${i18next.t('cores') || 'cores'})`;
     } else if (cpuInfoElement) {
-      cpuInfoElement.textContent = 'Не удалось получить информацию о CPU';
+      cpuInfoElement.textContent = i18next.t('cpuInfoError') || 'Не удалось получить информацию о CPU';
     }
     
     // Память
     if (memoryInfoElement && info.mem && info.mem.total) {
       const totalMemGB = Math.round(info.mem.total / (1024 * 1024 * 1024));
-      memoryInfoElement.textContent = `${totalMemGB} GB`;
+      const usedMemGB = info.mem.used ? Math.round(info.mem.used / (1024 * 1024 * 1024)) : null;
+      
+      if (usedMemGB !== null) {
+        memoryInfoElement.textContent = `${usedMemGB} GB / ${totalMemGB} GB`;
+      } else {
+        memoryInfoElement.textContent = `${totalMemGB} GB`;
+      }
     } else if (memoryInfoElement) {
-      memoryInfoElement.textContent = 'Не удалось получить информацию о памяти';
+      memoryInfoElement.textContent = i18next.t('memoryInfoError') || 'Не удалось получить информацию о памяти';
     }
     
     // Операционная система
@@ -241,33 +248,64 @@ function displaySystemInfo(info) {
       const osPlatform = info.os.platform || 'Unknown';
       const osRelease = info.os.release || 'Unknown';
       const osArch = info.os.arch || 'Unknown';
-      osInfoElement.textContent = `${osPlatform} ${osRelease} (${osArch})`;
+      const osDistro = info.os.distro || '';
+      osInfoElement.textContent = `${osDistro} ${osPlatform} ${osRelease} (${osArch})`;
     } else if (osInfoElement) {
-      osInfoElement.textContent = 'Не удалось получить информацию об ОС';
+      osInfoElement.textContent = i18next.t('osInfoError') || 'Не удалось получить информацию об ОС';
     }
     
     // Графика
     if (gpuInfoElement && info.graphics && info.graphics.controllers && info.graphics.controllers.length > 0) {
-      const gpuModels = info.graphics.controllers.map(gpu => gpu.model || 'Unknown').join(', ');
+      const gpuModels = info.graphics.controllers.map(gpu => {
+        const model = gpu.model || 'Unknown';
+        const vram = gpu.vram ? ` (${gpu.vram} MB)` : '';
+        return `${model}${vram}`;
+      }).join(', ');
       gpuInfoElement.textContent = gpuModels;
     } else if (gpuInfoElement) {
-      gpuInfoElement.textContent = 'Не удалось получить информацию о графике';
+      gpuInfoElement.textContent = i18next.t('gpuInfoError') || 'Не удалось получить информацию о графике';
     }
     
     console.log('System info displayed successfully');
   } catch (error) {
     console.error('Error displaying system information:', error);
-    displaySystemInfoError();
+    displaySystemInfoError(i18next.t('systemInfoError') || 'Ошибка при отображении системной информации');
   }
 }
 
 // Отображение ошибки системной информации
-function displaySystemInfoError() {
+function displaySystemInfoError(errorMessage = 'Ошибка при отображении информации') {
   const elements = ['cpu-info', 'memory-info', 'os-info', 'gpu-info'];
   elements.forEach(id => {
     const element = document.getElementById(id);
-    if (element) element.textContent = 'Ошибка при отображении информации';
+    if (element) element.textContent = errorMessage;
   });
+  
+  // Добавляем визуальное уведомление об ошибке
+  const systemInfoContainer = document.querySelector('.system-info-container');
+  if (systemInfoContainer) {
+    const errorNotification = document.createElement('div');
+    errorNotification.className = 'error-notification';
+    errorNotification.textContent = i18next.t('tryRefreshPage') || 'Попробуйте обновить страницу';
+    
+    // Проверяем, нет ли уже уведомления об ошибке
+    const existingError = systemInfoContainer.querySelector('.error-notification');
+    if (!existingError) {
+      systemInfoContainer.appendChild(errorNotification);
+      
+      // Автоматически скрываем уведомление через 5 секунд
+      setTimeout(() => {
+        if (errorNotification.parentNode) {
+          errorNotification.classList.add('fade-out');
+          setTimeout(() => {
+            if (errorNotification.parentNode) {
+              errorNotification.parentNode.removeChild(errorNotification);
+            }
+          }, 500);
+        }
+      }, 5000);
+    }
+  }
 }
 
 // Настройка обработчиков событий
@@ -499,9 +537,246 @@ document.getElementById('custom-version-input').addEventListener('input', (e) =>
   customVersion = e.target.value.trim();
 });
 
-// Кнопка анализа - обработчик перенесен в setupEventListeners
+// Функция анализа требований Java для Minecraft
+async function analyzeJavaRequirements() {
+  try {
+    console.log('Analyzing Java requirements');
+    
+    // Получаем выбранную версию Minecraft
+    let mcVersion = document.getElementById('minecraft-version').value;
+    if (mcVersion === 'custom') {
+      mcVersion = document.getElementById('custom-version-input').value.trim();
+      if (!mcVersion) {
+        showNotification(i18next.t('enterValidVersion') || 'Введите корректную версию', 'error');
+        return;
+      }
+    }
+    
+    console.log('Selected Minecraft version:', mcVersion);
+    
+    // Показываем индикатор загрузки
+    const resultContainer = document.getElementById('analysis-result');
+    if (resultContainer) {
+      resultContainer.innerHTML = `<div class="loading-analysis"><div class="spinner"></div><p>${i18next.t('analyzing') || 'Анализ...'}</p></div>`;
+      resultContainer.classList.add('active');
+    }
+    
+    // Получаем установленные версии Java
+    const javaInstallations = await ipcRenderer.invoke('get-java-installations');
+    
+    // Определяем требования Java для выбранной версии Minecraft
+    const requirements = getMinecraftJavaRequirements(mcVersion);
+    console.log('Java requirements for Minecraft', mcVersion, ':', requirements);
+    
+    // Находим подходящие версии Java
+    const suitableJava = findSuitableJava(javaInstallations, requirements);
+    
+    // Отображаем результаты анализа
+    displayAnalysisResults(mcVersion, requirements, suitableJava, javaInstallations);
+    
+  } catch (error) {
+    console.error('Error analyzing Java requirements:', error);
+    
+    // Отображаем ошибку
+    const resultContainer = document.getElementById('analysis-result');
+    if (resultContainer) {
+      resultContainer.innerHTML = `
+        <div class="error-message">
+          <h3>${i18next.t('analysisError') || 'Ошибка анализа'}</h3>
+          <p>${error.message || i18next.t('unknownError') || 'Неизвестная ошибка'}</p>
+          <button class="retry-analysis-btn">${i18next.t('retry') || 'Повторить'}</button>
+        </div>
+      `;
+      
+      // Добавляем обработчик для кнопки повтора
+      const retryBtn = resultContainer.querySelector('.retry-analysis-btn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', analyzeJavaRequirements);
+      }
+    }
+  }
+}
 
-// Эта функция перенесена в setupEventListeners
+// Определение требований Java для версии Minecraft
+function getMinecraftJavaRequirements(version) {
+  // Преобразуем версию в число для сравнения
+  // Например, "1.18.2" -> [1, 18, 2]
+  const versionParts = version.split('.');
+  const majorVersion = parseInt(versionParts[0]) || 0;
+  const minorVersion = parseInt(versionParts[1]) || 0;
+  
+  // Определяем требования на основе версии
+  if (majorVersion === 1) {
+    if (minorVersion >= 18) {
+      return { minVersion: 17, recommended: 17, architecture: '64-bit' };
+    } else if (minorVersion >= 17) {
+      return { minVersion: 16, recommended: 17, architecture: '64-bit' };
+    } else if (minorVersion >= 16) {
+      return { minVersion: 8, recommended: 16, architecture: '64-bit' };
+    } else if (minorVersion >= 13) {
+      return { minVersion: 8, recommended: 8, architecture: '64-bit' };
+    } else if (minorVersion >= 7) {
+      return { minVersion: 8, recommended: 8, architecture: 'any' };
+    } else {
+      return { minVersion: 6, recommended: 8, architecture: 'any' };
+    }
+  } else if (majorVersion >= 2) {
+    // Для будущих версий
+    return { minVersion: 17, recommended: 17, architecture: '64-bit' };
+  }
+  
+  // Для неизвестных версий
+  return { minVersion: 8, recommended: 17, architecture: '64-bit' };
+}
+
+// Поиск подходящих версий Java
+function findSuitableJava(installations, requirements) {
+  if (!installations || installations.length === 0) {
+    return { suitable: [], recommended: null, bestMatch: null };
+  }
+  
+  // Фильтруем по версии и архитектуре
+  const suitable = installations.filter(java => {
+    // Извлекаем номер версии Java
+    const javaVersion = parseInt(java.version.replace('Java ', '')) || 0;
+    
+    // Проверяем архитектуру, если требуется 64-bit
+    const architectureOk = requirements.architecture === 'any' || 
+                          (requirements.architecture === '64-bit' && java.architecture.includes('64'));
+    
+    return javaVersion >= requirements.minVersion && architectureOk;
+  });
+  
+  // Сортируем по версии (от новой к старой)
+  suitable.sort((a, b) => {
+    const versionA = parseInt(a.version.replace('Java ', '')) || 0;
+    const versionB = parseInt(b.version.replace('Java ', '')) || 0;
+    return versionB - versionA;
+  });
+  
+  // Находим рекомендуемую версию
+  const recommended = suitable.filter(java => {
+    const javaVersion = parseInt(java.version.replace('Java ', '')) || 0;
+    return javaVersion === requirements.recommended;
+  });
+  
+  // Лучшее совпадение - рекомендуемая версия или первая подходящая
+  const bestMatch = recommended.length > 0 ? recommended[0] : (suitable.length > 0 ? suitable[0] : null);
+  
+  return { suitable, recommended, bestMatch };
+}
+
+// Отображение результатов анализа
+function displayAnalysisResults(mcVersion, requirements, suitableJava, allJava) {
+  const resultContainer = document.getElementById('analysis-result');
+  if (!resultContainer) return;
+  
+  // Обновляем информацию о Minecraft
+  const minecraftInfo = document.getElementById('minecraft-info');
+  if (minecraftInfo) {
+    minecraftInfo.textContent = `${i18next.t('version') || 'Версия'}: ${mcVersion}`;
+  }
+  
+  // Если нет установленных Java
+  if (!allJava || allJava.length === 0) {
+    resultContainer.innerHTML = `
+      <div class="analysis-result-content">
+        <h3>${i18next.t('analysisResults') || 'Результаты анализа'}</h3>
+        <div class="no-java-warning">
+          <p>${i18next.t('noJavaInstalled') || 'Java не установлена на вашем компьютере'}</p>
+          <p>${i18next.t('requiredJava') || 'Для Minecraft'} ${mcVersion} ${i18next.t('required') || 'требуется'} Java ${requirements.minVersion}+</p>
+          <a href="https://www.java.com/download/" target="_blank" class="download-java-btn">
+            ${i18next.t('downloadJava') || 'Скачать Java'}
+          </a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Если нет подходящих версий Java
+  if (suitableJava.suitable.length === 0) {
+    resultContainer.innerHTML = `
+      <div class="analysis-result-content">
+        <h3>${i18next.t('analysisResults') || 'Результаты анализа'}</h3>
+        <div class="no-suitable-java">
+          <p>${i18next.t('noSuitableJava') || 'Не найдено подходящих версий Java'}</p>
+          <p>${i18next.t('requiredJava') || 'Для Minecraft'} ${mcVersion} ${i18next.t('required') || 'требуется'} Java ${requirements.minVersion}+ (${requirements.architecture})</p>
+          <p>${i18next.t('installedJava') || 'Установленные версии'}:</p>
+          <ul class="installed-java-list">
+            ${allJava.map(java => `<li>${java.version} (${java.architecture})</li>`).join('')}
+          </ul>
+          <a href="https://www.java.com/download/" target="_blank" class="download-java-btn">
+            ${i18next.t('downloadJava') || 'Скачать Java'}
+          </a>
+        </div>
+      </div>
+    `;
+    return;
+  }
+  
+  // Есть подходящие версии Java
+  resultContainer.innerHTML = `
+    <div class="analysis-result-content">
+      <h3>${i18next.t('analysisResults') || 'Результаты анализа'}</h3>
+      <div class="suitable-java-found">
+        <p>${i18next.t('forMinecraft') || 'Для Minecraft'} ${mcVersion} ${i18next.t('recommended') || 'рекомендуется'} Java ${requirements.recommended} (${requirements.architecture})</p>
+        
+        ${suitableJava.bestMatch ? `
+          <div class="best-match">
+            <h4>${i18next.t('bestMatch') || 'Лучшее совпадение'}:</h4>
+            <div class="java-match-item">
+              <span class="java-version">${suitableJava.bestMatch.version}</span>
+              <span class="java-arch">${suitableJava.bestMatch.architecture}</span>
+              <span class="java-path">${suitableJava.bestMatch.path}</span>
+            </div>
+          </div>
+        ` : ''}
+        
+        <h4>${i18next.t('suitableVersions') || 'Подходящие версии'} (${suitableJava.suitable.length}):</h4>
+        <ul class="suitable-java-list">
+          ${suitableJava.suitable.map(java => `
+            <li class="java-match-item ${java === suitableJava.bestMatch ? 'recommended' : ''}">
+              <span class="java-version">${java.version}</span>
+              <span class="java-arch">${java.architecture}</span>
+              <span class="java-path">${java.path}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+// Функция отображения уведомлений
+function showNotification(message, type = 'info') {
+  const notificationContainer = document.getElementById('notification-container') || 
+                               createNotificationContainer();
+  
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  
+  notificationContainer.appendChild(notification);
+  
+  // Автоматически скрываем уведомление через 5 секунд
+  setTimeout(() => {
+    notification.classList.add('fade-out');
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 500);
+  }, 5000);
+}
+
+// Создание контейнера для уведомлений
+function createNotificationContainer() {
+  const container = document.createElement('div');
+  container.id = 'notification-container';
+  document.body.appendChild(container);
+  return container;
+}
 
 // Функция настройки обработчиков меню
 function setupMenuHandlers() {
@@ -559,15 +834,37 @@ function loadMinecraftAndJavaVersions() {
         // Отображаем информацию о Java в системной информации
         const javaInfoElement = document.createElement('div');
         javaInfoElement.className = 'info-card';
-        javaInfoElement.innerHTML = `
-          <h3 data-i18n="java">Java</h3>
-          <p id="java-info">${javaInstallations && javaInstallations.length > 0 ? 
-            javaInstallations[0].version : 'Не установлено'}</p>
-        `;
+        
+        if (javaInstallations && javaInstallations.length > 0) {
+          // Сортируем установки Java по версии (от новой к старой)
+          javaInstallations.sort((a, b) => {
+            const versionA = parseFloat(a.version.replace('Java ', ''));
+            const versionB = parseFloat(b.version.replace('Java ', ''));
+            return versionB - versionA;
+          });
+          
+          const defaultJava = javaInstallations.find(java => java.isDefault) || javaInstallations[0];
+          
+          javaInfoElement.innerHTML = `
+            <h3 data-i18n="java">Java</h3>
+            <p id="java-info">${defaultJava.version} (${defaultJava.architecture})</p>
+            <p class="java-count">${i18next.t('installedVersions') || 'Установленные версии'}: ${javaInstallations.length}</p>
+          `;
+        } else {
+          javaInfoElement.innerHTML = `
+            <h3 data-i18n="java">Java</h3>
+            <p id="java-info">${i18next.t('notInstalled') || 'Не установлено'}</p>
+            <p class="java-warning">${i18next.t('javaRequired') || 'Требуется для Minecraft'}</p>
+          `;
+        }
         
         const systemInfoContainer = document.querySelector('.system-info-container');
         if (systemInfoContainer) {
-          systemInfoContainer.appendChild(javaInfoElement);
+          // Проверяем, нет ли уже элемента с информацией о Java
+          const existingJavaInfo = systemInfoContainer.querySelector('.info-card h3[data-i18n="java"]');
+          if (!existingJavaInfo) {
+            systemInfoContainer.appendChild(javaInfoElement);
+          }
         }
         
         // Получаем информацию о Minecraft
@@ -578,11 +875,15 @@ function loadMinecraftAndJavaVersions() {
         minecraftInfoElement.className = 'info-card';
         minecraftInfoElement.innerHTML = `
           <h3 data-i18n="minecraft">Minecraft</h3>
-          <p id="minecraft-info">Нажмите кнопку анализа для проверки</p>
+          <p id="minecraft-info">${i18next.t('clickAnalyzeButton') || 'Нажмите кнопку анализа для проверки'}</p>
         `;
         
         if (systemInfoContainer) {
-          systemInfoContainer.appendChild(minecraftInfoElement);
+          // Проверяем, нет ли уже элемента с информацией о Minecraft
+          const existingMinecraftInfo = systemInfoContainer.querySelector('.info-card h3[data-i18n="minecraft"]');
+          if (!existingMinecraftInfo) {
+            systemInfoContainer.appendChild(minecraftInfoElement);
+          }
         }
         
         // Обновляем переводы для новых элементов
@@ -596,10 +897,39 @@ function loadMinecraftAndJavaVersions() {
         console.log('Minecraft and Java versions loaded successfully');
       } catch (error) {
         console.error('Error loading Minecraft and Java versions:', error);
+        
+        // Отображаем сообщение об ошибке
+        const systemInfoContainer = document.querySelector('.system-info-container');
+        if (systemInfoContainer) {
+          const errorElement = document.createElement('div');
+          errorElement.className = 'info-card error';
+          errorElement.innerHTML = `
+            <h3 data-i18n="error">Ошибка</h3>
+            <p>${i18next.t('javaLoadError') || 'Не удалось загрузить информацию о Java'}</p>
+            <button class="retry-btn">${i18next.t('retry') || 'Повторить'}</button>
+          `;
+          
+          // Добавляем обработчик для кнопки повтора
+          const retryBtn = errorElement.querySelector('.retry-btn');
+          if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+              // Удаляем сообщение об ошибке
+              if (errorElement.parentNode) {
+                errorElement.parentNode.removeChild(errorElement);
+              }
+              // Повторяем загрузку
+              loadMinecraftAndJavaVersions();
+            });
+          }
+          
+          systemInfoContainer.appendChild(errorElement);
+        }
       }
-    }, 1500);
+    }, 1000);
   } catch (error) {
     console.error('Error in loadMinecraftAndJavaVersions:', error);
+  }
+}
   }
 }
 

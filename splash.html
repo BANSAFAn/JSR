@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>JSR Loading</title>
+  <style>
+    body {
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    .splash-container {
+      text-align: center;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      animation: pulse 2s infinite;
+    }
+
+    .app-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #ff0000, #ff8000, #ff4500);
+      background-size: 200% auto;
+      color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      animation: gradient 3s linear infinite;
+    }
+
+    .version {
+      font-size: 14px;
+      margin-bottom: 20px;
+      opacity: 0.8;
+    }
+
+    .loading-bar {
+      width: 200px;
+      height: 4px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loading-progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #4285F4, #34A853, #FBBC05, #EA4335);
+      border-radius: 2px;
+      animation: loading 2s ease-in-out forwards;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .alpha-tag {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(255, 0, 0, 0.7);
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .author {
+      position: absolute;
+      bottom: 10px;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes loading {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="alpha-tag">Alpha</div>
+  
+  <div class="splash-container">
+    <img src="assets/images/Logo.png" alt="JSR Logo" class="logo">
+    <div class="app-name">JSR</div>
+    <div class="version">Версия 1.0.0</div>
+    
+    <div class="loading-bar">
+      <div class="loading-progress"></div>
+    </div>
+    
+    <div class="status">Загрузка...</div>
+  </div>
+  
+  <div class="author">Разработано Baneronetwo</div>
+
+  <script>
+    // Имитация процесса загрузки
+    const statusElement = document.querySelector('.status');
+    const messages = [
+      'Инициализация...',
+      'Загрузка компонентов...',
+      'Анализ системы...',
+      'Почти готово...'
+    ];
+    
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+      if (messageIndex < messages.length) {
+        statusElement.textContent = messages[messageIndex];
+        messageIndex++;
+      } else {
+        clearInterval(messageInterval);
+      }
+    }, 500);
+  </script>
+</body>
+</html>

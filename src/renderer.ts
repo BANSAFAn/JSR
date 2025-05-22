@@ -208,10 +208,23 @@ async function getSystemInfo(): Promise<void> {
   try {
     systemInfo = await window.electronAPI.getSystemInfo();
     displaySystemInfo();
+    
+    // Также получаем информацию о Java
+    await getJavaInfo();
   } catch (error) {
     console.error('Error getting system info:', error);
   } finally {
     showLoading(false);
+  }
+}
+
+// Получение информации о Java
+async function getJavaInfo(): Promise<void> {
+  try {
+    const javaInfo = await window.electronAPI.getJavaInfo();
+    displayJavaInfo(javaInfo);
+  } catch (error) {
+    console.error('Error getting Java info:', error);
   }
 }
 
@@ -225,34 +238,141 @@ function displaySystemInfo(): void {
   const gpuInfoElement = document.getElementById('gpu-info');
   
   if (cpuInfoElement && systemInfo.cpu) {
-    cpuInfoElement.textContent = `${systemInfo.cpu.manufacturer} ${systemInfo.cpu.brand} (${systemInfo.cpu.cores} ${i18next.t('cores')})`;
+    // Добавляем больше информации о процессоре
+    const cpuSpeed = systemInfo.cpu.speed ? `${systemInfo.cpu.speed} GHz` : '';
+    const cpuMaxSpeed = systemInfo.cpu.speedMax ? ` (до ${systemInfo.cpu.speedMax} GHz)` : '';
+    cpuInfoElement.textContent = `${systemInfo.cpu.manufacturer} ${systemInfo.cpu.brand} (${systemInfo.cpu.cores} ${i18next.t('cores')}) ${cpuSpeed}${cpuMaxSpeed}`;
   }
   
   if (memoryInfoElement && systemInfo.mem) {
-    const totalMemGB = Math.round(systemInfo.mem.total / (1024 * 1024 * 1024));
-    memoryInfoElement.textContent = `${totalMemGB} GB`;
+    // Показываем больше информации о памяти
+    memoryInfoElement.textContent = `${systemInfo.mem.totalFormatted} (${i18next.t('used')}: ${systemInfo.mem.usedFormatted}, ${i18next.t('free')}: ${systemInfo.mem.freeFormatted})`;
   }
   
   if (osInfoElement && systemInfo.os) {
-    osInfoElement.textContent = `${systemInfo.os.platform} ${systemInfo.os.release} (${systemInfo.os.arch})`;
+    // Добавляем больше информации об ОС
+    osInfoElement.textContent = `${systemInfo.os.distro} ${systemInfo.os.release} (${systemInfo.os.platform}, ${systemInfo.os.arch})`;
   }
   
   if (gpuInfoElement && systemInfo.graphics && systemInfo.graphics.controllers && systemInfo.graphics.controllers.length > 0) {
-    gpuInfoElement.textContent = systemInfo.graphics.controllers[0].model;
+    // Показываем информацию о всех видеокартах
+    const gpuInfo = systemInfo.graphics.controllers.map(controller => controller.model).join(', ');
+    gpuInfoElement.textContent = gpuInfo;
   }
+}
+
+// Отображение информации о Java
+function displayJavaInfo(javaInfo: any[]): void {
+  const javaListElement = document.getElementById('java-list');
+  if (!javaListElement) return;
+  
+  // Очищаем список
+  javaListElement.innerHTML = '';
+  
+  if (javaInfo.length === 0 || javaInfo.error) {
+    const noJavaElement = document.createElement('div');
+    noJavaElement.className = 'no-java-info';
+    noJavaElement.textContent = i18next.t('noJavaFound');
+    javaListElement.appendChild(noJavaElement);
+    return;
+  }
+  
+  // Создаем элементы для каждой установки Java
+  javaInfo.forEach(java => {
+    const javaItem = document.createElement('div');
+    javaItem.className = 'java-item';
+    
+    const javaName = document.createElement('h4');
+    javaName.textContent = java.name;
+    javaItem.appendChild(javaName);
+    
+    const javaVersion = document.createElement('p');
+    javaVersion.className = 'java-version';
+    javaVersion.textContent = `${i18next.t('version')}: ${java.version}`;
+    javaItem.appendChild(javaVersion);
+    
+    const javaPath = document.createElement('p');
+    javaPath.className = 'java-path';
+    javaPath.textContent = `${i18next.t('path')}: ${java.path || java.location || i18next.t('unknown')}`;
+    javaItem.appendChild(javaPath);
+    
+    // Определяем, для каких версий Minecraft подходит эта Java
+    const mcVersions = getCompatibleMinecraftVersions(java.version);
+    if (mcVersions.length > 0) {
+      const compatibleVersions = document.createElement('p');
+      compatibleVersions.className = 'compatible-versions';
+      compatibleVersions.textContent = `${i18next.t('compatibleWith')}: ${mcVersions.join(', ')}`;
+      javaItem.appendChild(compatibleVersions);
+    }
+    
+    javaListElement.appendChild(javaItem);
+  });
+}
+
+// Определение совместимых версий Minecraft для Java
+function getCompatibleMinecraftVersions(javaVersion: string): string[] {
+  if (!javaVersion) return [];
+  
+  // Извлекаем основную версию Java
+  const versionMatch = javaVersion.match(/\d+/);
+  if (!versionMatch) return [];
+  
+  const majorVersion = parseInt(versionMatch[0], 10);
+  const compatibleVersions = [];
+  
+  if (majorVersion >= 17) {
+    compatibleVersions.push('1.17+');
+  }
+  
+  if (majorVersion >= 8 && majorVersion <= 16) {
+    compatibleVersions.push('1.13-1.16.5');
+  }
+  
+  if (majorVersion === 8) {
+    compatibleVersions.push('1.7.10-1.12.2');
+  }
+  
+  if (majorVersion === 6 || majorVersion === 7) {
+    compatibleVersions.push('1.0-1.6.4');
+  }
+  
+  return compatibleVersions;
 }
 
 // Setup event listeners
 function setupEventListeners(): void {
+  // Кнопки управления окном
+  const minimizeBtn = document.getElementById('minimize-btn');
+  const maximizeBtn = document.getElementById('maximize-btn');
+  const closeBtn = document.getElementById('close-btn');
+  
+  if (minimizeBtn) {
+    minimizeBtn.addEventListener('click', () => {
+      window.electronAPI.minimizeWindow();
+    });
+  }
+  
+  if (maximizeBtn) {
+    maximizeBtn.addEventListener('click', () => {
+      window.electronAPI.maximizeWindow();
+    });
+  }
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      window.electronAPI.closeWindow();
+    });
+  }
+  
   // Version selection
-  const versionRadios = document.querySelectorAll('input[name="minecraft-version"]');
-  versionRadios.forEach((radio) => {
-    radio.addEventListener('change', (e) => {
-      const target = e.target as HTMLInputElement;
+  const versionSelect = document.getElementById('minecraft-version') as HTMLSelectElement;
+  if (versionSelect) {
+    versionSelect.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
       selectedMinecraftVersion = target.value;
       toggleCustomVersionInput();
     });
-  });
+  }
   
   // Custom version input
   const customVersionInput = document.getElementById('custom-version-input') as HTMLInputElement;
@@ -264,9 +384,9 @@ function setupEventListeners(): void {
   }
   
   // Analyze button
-  const analyzeButton = document.getElementById('analyze-button');
-  if (analyzeButton) {
-    analyzeButton.addEventListener('click', analyzeMinecraftVersion);
+  const analyzeBtn = document.getElementById('analyze-btn');
+  if (analyzeBtn) {
+    analyzeBtn.addEventListener('click', analyzeMinecraftVersion);
   }
   
   // Language selector
@@ -280,7 +400,7 @@ function setupEventListeners(): void {
   }
   
   // Theme buttons
-  const themeButtons = document.querySelectorAll('.theme-button');
+  const themeButtons = document.querySelectorAll('.theme-btn');
   themeButtons.forEach((button) => {
     button.addEventListener('click', (e) => {
       const target = e.currentTarget as HTMLElement;
@@ -291,6 +411,43 @@ function setupEventListeners(): void {
       }
     });
   });
+  
+  // Боковая панель
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebar = document.getElementById('sidebar');
+  const mainContent = document.querySelector('.main-content');
+  
+  if (sidebarToggle && sidebar && mainContent) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      mainContent.classList.toggle('blur');
+    });
+  }
+  
+  // Кнопки боковой панели
+  const sidebarButtons = document.querySelectorAll('.sidebar-main-btn');
+  const sidebarSections = document.querySelectorAll('.sidebar-section');
+  
+  sidebarButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // Удаляем активный класс со всех кнопок и секций
+      sidebarButtons.forEach(btn => btn.classList.remove('active'));
+      sidebarSections.forEach(section => section.classList.remove('active'));
+      
+      // Добавляем активный класс к нажатой кнопке
+      button.classList.add('active');
+      
+      // Показываем соответствующую секцию
+      const action = button.getAttribute('data-action');
+      if (action) {
+        const section = document.getElementById(`${action}-content`);
+        if (section) {
+          section.classList.add('active');
+        }
+      }
+    });
+  });
+}
 }
 
 // Toggle custom version input visibility

@@ -86,12 +86,48 @@ function createWindow(): void {
 
 // Create window when Electron is ready
 app.whenReady().then(() => {
-  createWindow();
+  // Показываем загрузочный экран
+  const splashScreen = new SplashScreen(() => {
+    createWindow();
+  });
+  splashScreen.create();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+  
+  // Обработчики событий для управления окном
+  ipcMain.on('minimize-window', () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.minimize();
+  });
+  
+  ipcMain.on('maximize-window', () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) {
+      if (win.isMaximized()) {
+        win.unmaximize();
+      } else {
+        win.maximize();
+      }
+    }
+  });
+  
+  ipcMain.on('close-window', () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (win) win.close();
+  });
+  
+  // Проверка первого запуска
+  ipcMain.handle('is-first-run', () => {
+    const store = new Store();
+    const isFirstRun = !store.has('firstRun');
+    if (isFirstRun) {
+      store.set('firstRun', false);
+    }
+    return isFirstRun;
   });
 });
 
@@ -103,61 +139,89 @@ app.on('window-all-closed', function () {
 // Get system information
 ipcMain.handle('get-system-info', async () => {
   try {
-    // Используем try-catch для каждого вызова, чтобы получить максимум информации
-    let cpuInfo = { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 };
-    let memInfo = { total: 0 };
-    let osInfo = { platform: 'Unknown', release: 'Unknown', arch: 'Unknown' };
-    // Используем тип, совместимый с возвращаемым значением si.graphics()
-    let graphicsInfo: { controllers: Array<{ model: string }> } = { controllers: [{ model: 'Unknown' }] };
+    // Получаем более подробную информацию о системе
+    const [cpu, mem, os, graphics, diskLayout, battery, baseboard, bios] = await Promise.all([
+      si.cpu(),
+      si.mem(),
+      si.osInfo(),
+      si.graphics(),
+      si.diskLayout(),
+      si.battery(),
+      si.baseboard(),
+      si.bios()
+    ]);
     
-    try {
-      cpuInfo = await si.cpu();
-      console.log('CPU info retrieved successfully:', cpuInfo);
-    } catch (e) {
-      console.error('Error getting CPU info:', e);
-    }
-    
-    try {
-      memInfo = await si.mem();
-      console.log('Memory info retrieved successfully:', memInfo);
-    } catch (e) {
-      console.error('Error getting memory info:', e);
-    }
-    
-    try {
-      osInfo = await si.osInfo();
-      console.log('OS info retrieved successfully:', osInfo);
-    } catch (e) {
-      console.error('Error getting OS info:', e);
-    }
-    
-    try {
-      graphicsInfo = await si.graphics();
-      console.log('Graphics info retrieved successfully:', graphicsInfo);
-    } catch (e) {
-      console.error('Error getting graphics info:', e);
-      // Исправление типизации для контроллеров графики
-      graphicsInfo = { controllers: [{ model: 'Unknown' }] };
-    }
-    
-    const result = {
-      cpu: cpuInfo,
-      mem: memInfo,
-      os: osInfo,
-      graphics: graphicsInfo
+    // Форматируем информацию для отображения
+    const formattedCpu = {
+      manufacturer: cpu.manufacturer,
+      brand: cpu.brand,
+      cores: cpu.cores,
+      physicalCores: cpu.physicalCores,
+      speed: cpu.speed,
+      speedMax: cpu.speedMax
     };
     
-    console.log('Returning system info to renderer:', result);
-    return result;
+    const formattedMem = {
+      total: mem.total,
+      free: mem.free,
+      used: mem.used,
+      totalFormatted: `${Math.round(mem.total / (1024 * 1024 * 1024))} GB`,
+      freeFormatted: `${Math.round(mem.free / (1024 * 1024 * 1024))} GB`,
+      usedFormatted: `${Math.round(mem.used / (1024 * 1024 * 1024))} GB`
+    };
+    
+    const formattedOs = {
+      platform: os.platform,
+      distro: os.distro,
+      release: os.release,
+      arch: os.arch,
+      hostname: os.hostname
+    };
+    
+    return { 
+      cpu: formattedCpu, 
+      mem: formattedMem, 
+      os: formattedOs, 
+      graphics, 
+      diskLayout,
+      battery,
+      baseboard,
+      bios
+    };
   } catch (error) {
     console.error('Error getting system information:', error);
-    // Возвращаем базовую информацию, чтобы интерфейс не сломался
     return { 
       cpu: { manufacturer: 'Unknown', brand: 'Unknown', cores: 0 },
       mem: { total: 0 },
       os: { platform: process.platform, release: 'Unknown', arch: process.arch },
       graphics: { controllers: [{ model: 'Unknown' }] }
     };
+  }
+});
+
+// Получение информации о Java на компьютере
+ipcMain.handle('get-java-info', async () => {
+  try {
+    // Получаем список установленных программ
+    const apps = await si.programs();
+    
+    // Фильтруем только Java
+    const javaInstallations = apps.filter(app => 
+      app.name.toLowerCase().includes('java') || 
+      app.name.toLowerCase().includes('jdk') || 
+      app.name.toLowerCase().includes('jre')
+    );
+    
+    // Если Java не найдена через системную информацию, пробуем через команды
+    if (javaInstallations.length === 0) {
+      // Здесь можно добавить дополнительную логику поиска Java через команды
+      // Например, выполнить команду 'java -version' и разобрать вывод
+    }
+    
+    return javaInstallations;
+  } catch (error) {
+    console.error('Error getting Java info:', error);
+    return { error: 'Failed to get Java information' };
   }
 });
 
