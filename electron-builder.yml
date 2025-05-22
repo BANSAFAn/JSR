@@ -26,7 +26,8 @@ electronCompile:
   asar: true
 asarUnpack:
   - "**/*.node"
-  - "**/assets/**/*"
+  - "**/assets/images/AppIcon.ico"
+  - "**/assets/images/installer-sidebar.png"
   - "**/locales/**/*"
 files:
   - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
@@ -48,11 +49,8 @@ mac:
   minimumSystemVersion: "10.11.0"
   compression: normal
 win:
-  target:
-    - target: nsis
-      arch:
-        - x64
-  icon: assets/images/Logo.png
+  target: nsis
+  icon: assets/images/AppIcon.ico
   artifactName: ${productName}-Setup-${version}.${ext}
   compression: maximum
   signAndEditExecutable: false
@@ -60,15 +58,15 @@ win:
   publisherName: BANSAFAn
 nsis:
   oneClick: false
-  perMachine: false
+  perMachine: true
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: JSR
   license: LICENSE
-  installerIcon: assets/images/Logo.png
-  uninstallerIcon: assets/images/Logo.png
-  installerHeaderIcon: assets/images/Logo.png
+  installerIcon: assets/images/AppIcon.ico
+  uninstallerIcon: assets/images/AppIcon.ico
+  installerHeaderIcon: assets/images/AppIcon.ico
   installerSidebar: assets/images/installer-sidebar.png
   uninstallerSidebar: assets/images/installer-sidebar.png
   allowElevation: true
@@ -87,10 +85,16 @@ nsis:
   packElevateHelper: true
   warningsAsErrors: false
   unicode: true
-  differentialPackage: true
+  differentialPackage: false
   artifactBuildStarted: false
   removePackageScripts: true
-  script: build/installer.nsh
+  # Максимальное сжатие установщика
+  compression: maximum
+  # Использование bzip2 для лучшего сжатия
+  compressorOptions:
+    solid: true
+    level: 9
+  script: assets/installer.nsh
 linux:
   target:
     - AppImage

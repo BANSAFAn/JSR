@@ -11,6 +11,7 @@
     "build:mac": "tsc && electron-builder --mac",
     "build:linux": "tsc && electron-builder --linux",
     "build:optimized": "node build-optimized.js",
+    "build:compact": "node build-compact-installer.js",
     "release": "npm run prebuild && node generate-release.js && electron-builder --publish always",
     "release:win": "npm run prebuild && node generate-release.js && electron-builder --win --publish always",
     "release:mac": "npm run prebuild && node generate-release.js && electron-builder --mac --publish always",
