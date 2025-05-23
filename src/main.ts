@@ -17,6 +17,11 @@ if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023
   store.set('appName', 'JSR');
 }
 
+// Отключение аппаратного ускорения для предотвращения ошибок GPU
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+
 // Save window reference to prevent automatic closing
 let mainWindow: BrowserWindow | null;
 
@@ -63,7 +68,7 @@ function createWindow(): void {
   // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
   const indexPath = app.isPackaged
     ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
-    : path.join(__dirname, '../index.html'); // Путь в режиме разработки
+    : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
     
   // Установка пути к стилям
   if (app.isPackaged && mainWindow) {
@@ -240,10 +245,7 @@ ipcMain.handle('get-settings', () => {
   });
 });
 
-// Проверка первого запуска
-ipcMain.handle('is-first-run', () => {
-  return isFirstRun;
-});
+// Дублирующаяся регистрация удалена - используется регистрация в createWindow()
 
 // Получение настроек установки
 ipcMain.handle('get-install-config', () => {
@@ -291,17 +293,7 @@ ipcMain.handle('get-java-installations', async () => {
   }
 });
 
-// Обратная совместимость для старого обработчика
-ipcMain.handle('get-java-info', async () => {
-  try {
-    console.log('Old get-java-info handler called, redirecting to new implementation');
-    const javaVersions = await si.versions();
-    return javaVersions;
-  } catch (error) {
-    console.error('Error in get-java-info handler:', error);
-    return { java: { version: 'Unknown' }, error: (error as Error).message };
-  }
-});
+// Дублирующаяся регистрация удалена - используется основная регистрация выше
 
 // Открытие внешних ссылок
 ipcMain.handle('open-external-link', async (event, url) => {

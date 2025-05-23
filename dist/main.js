@@ -50,6 +50,10 @@ if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023
     store.clear();
     store.set('appName', 'JSR');
 }
+// Отключение аппаратного ускорения для предотвращения ошибок GPU
+electron_1.app.disableHardwareAcceleration();
+electron_1.app.commandLine.appendSwitch('disable-gpu');
+electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
 // Save window reference to prevent automatic closing
 let mainWindow;
 function createWindow() {
@@ -92,7 +96,7 @@ function createWindow() {
     // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
     const indexPath = electron_1.app.isPackaged
         ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
-        : path.join(__dirname, '../index.html'); // Путь в режиме разработки
+        : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
     // Установка пути к стилям
     if (electron_1.app.isPackaged && mainWindow) {
         mainWindow.webContents.on('did-finish-load', () => {
@@ -252,10 +256,7 @@ electron_1.ipcMain.handle('get-settings', () => {
         language: 'en'
     });
 });
-// Проверка первого запуска
-electron_1.ipcMain.handle('is-first-run', () => {
-    return isFirstRun;
-});
+// Дублирующаяся регистрация удалена - используется регистрация в createWindow()
 // Получение настроек установки
 electron_1.ipcMain.handle('get-install-config', () => {
     return store.get('install-config', {
@@ -296,18 +297,7 @@ electron_1.ipcMain.handle('get-java-installations', async () => {
         return [];
     }
 });
-// Обратная совместимость для старого обработчика
-electron_1.ipcMain.handle('get-java-info', async () => {
-    try {
-        console.log('Old get-java-info handler called, redirecting to new implementation');
-        const javaVersions = await si.versions();
-        return javaVersions;
-    }
-    catch (error) {
-        console.error('Error in get-java-info handler:', error);
-        return { java: { version: 'Unknown' }, error: error.message };
-    }
-});
+// Дублирующаяся регистрация удалена - используется основная регистрация выше
 // Открытие внешних ссылок
 electron_1.ipcMain.handle('open-external-link', async (event, url) => {
     try {
