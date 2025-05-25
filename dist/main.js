@@ -57,8 +57,10 @@ electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
 // Save window reference to prevent automatic closing
 let mainWindow;
 function createWindow() {
+    console.log('createWindow called');
     // Create browser window
-    mainWindow = new electron_1.BrowserWindow({
+    console.log('Creating new BrowserWindow...');
+    const currentWindow = new electron_1.BrowserWindow({
         width: 900,
         height: 700,
         webPreferences: {
@@ -71,6 +73,7 @@ function createWindow() {
         titleBarStyle: 'hidden',
         frame: true
     });
+    mainWindow = currentWindow; // Assign to the global mainWindow variable
     // Обработчики для кнопок управления окном
     electron_1.ipcMain.on('minimize-window', () => {
         if (mainWindow) {
@@ -108,8 +111,27 @@ function createWindow() {
             }
         });
     }
-    if (mainWindow) {
-        mainWindow.loadFile(indexPath);
+    if (currentWindow) { // Use local variable
+        console.log(`Attempting to load index.html from: ${indexPath}`);
+        currentWindow.loadFile(indexPath); // Use local variable
+        console.log('loadFile called');
+        // Add error handling for loading failures
+        currentWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+            console.error(`Failed to load URL: ${validatedURL}`);
+            console.error(`Error Code: ${errorCode}`);
+            console.error(`Error Description: ${errorDescription}`);
+            console.error(`Is Main Frame: ${isMainFrame}`);
+        });
+        // Show the window when it's ready to prevent a white flash
+        currentWindow.once('ready-to-show', () => {
+            console.log('mainWindow ready-to-show event triggered');
+            // Now currentWindow is guaranteed to be non-null inside this callback
+            currentWindow.show(); // This should now be fine
+        });
+        // Add a listener for did-finish-load to check if the page has loaded
+        currentWindow.webContents.on('did-finish-load', () => {
+            console.log('mainWindow did-finish-load event triggered');
+        });
     }
     // Open DevTools in development mode
     // mainWindow.webContents.openDevTools();

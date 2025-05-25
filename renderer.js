@@ -1166,3 +1166,4 @@ function showLoading(show) {
     loadingOverlay.classList.remove('visible');
   }
 }
+console.log('renderer.js started');

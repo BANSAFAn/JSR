@@ -26,8 +26,10 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 let mainWindow: BrowserWindow | null;
 
 function createWindow(): void {
+  console.log('createWindow called');
   // Create browser window
-  mainWindow = new BrowserWindow({
+  console.log('Creating new BrowserWindow...');
+  const currentWindow = new BrowserWindow({
     width: 900,
     height: 700,
     webPreferences: {
@@ -40,6 +42,8 @@ function createWindow(): void {
     titleBarStyle: 'hidden',
     frame: true
   });
+
+  mainWindow = currentWindow; // Assign to the global mainWindow variable
   
   // Обработчики для кнопок управления окном
   ipcMain.on('minimize-window', () => {
@@ -68,7 +72,7 @@ function createWindow(): void {
   // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
   const indexPath = app.isPackaged
     ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
-    : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
+    : path.join(__dirname, '..', 'index.html'); // Путь в режиме разработки (из dist обратно в корень)
     
   // Установка пути к стилям
   if (app.isPackaged && mainWindow) {
@@ -82,8 +86,37 @@ function createWindow(): void {
     });  
   }
   
-  if (mainWindow) {
-    mainWindow.loadFile(indexPath);
+  if (currentWindow) { // Use local variable
+    console.log(`Attempting to load index.html from: ${indexPath}`);
+    currentWindow.loadFile(indexPath);
+    console.log('loadFile called');
+
+    // Add error handling for loading failures
+    console.log('Attaching did-fail-load listener...');
+    currentWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => { // Use local variable
+      console.error(`Failed to load URL: ${validatedURL}`);
+      console.error(`Error Code: ${errorCode}`);
+      console.error(`Error Description: ${errorDescription}`);
+      console.error(`Is Main Frame: ${isMainFrame}`);
+    });
+    console.log('did-fail-load listener attached.');
+
+    // Show the window when it's ready to prevent a white flash
+    console.log('Attaching ready-to-show listener...');
+    currentWindow.once('ready-to-show', () => { // Use local variable
+      console.log('mainWindow ready-to-show event triggered');
+      // Now currentWindow is guaranteed to be non-null inside this callback
+      currentWindow.show(); // This should now be fine
+      console.log('mainWindow shown.');
+    });
+    console.log('ready-to-show listener attached.');
+
+    // Add a listener for did-finish-load to check if the page has loaded
+    console.log('Attaching did-finish-load listener...');
+    currentWindow.webContents.on('did-finish-load', () => { // Use local variable
+      console.log('mainWindow did-finish-load event triggered');
+    });
+    console.log('did-finish-load listener attached.');
   }
 
   // Open DevTools in development mode

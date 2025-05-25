@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
+import * as url from 'url';
 
 export class SplashScreen {
   private window: BrowserWindow | null = null;
@@ -21,11 +22,11 @@ export class SplashScreen {
         nodeIntegration: true,
         contextIsolation: false
       },
-      icon: path.join(__dirname, '../assets/images/Logo.png')
+      icon: path.join(app.getAppPath(), 'assets/images/Logo.png')
     });
 
     // Загружаем HTML для загрузочного экрана
-    this.window.loadFile(path.join(__dirname, '../splash.html'));
+    this.window.loadFile(path.join(app.getAppPath(), 'splash.html'));
 
     // Скрываем окно при закрытии вместо уничтожения
     this.window.on('close', (event) => {
@@ -37,9 +38,11 @@ export class SplashScreen {
 
     // Запускаем основное окно после загрузки
     setTimeout(() => {
-      this.close();
-      this.mainWindowCallback();
-    }, 2000);
+      console.log('SplashScreen closing...');
+    this.close();
+    console.log('Calling mainWindowCallback...');
+    this.mainWindowCallback();
+  }, 2000);
   }
 
   public close(): void {
