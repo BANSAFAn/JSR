@@ -32,109 +32,24 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
-const electron_store_1 = __importDefault(require("electron-store"));
-const si = __importStar(require("systeminformation"));
 const splash_screen_1 = require("./splash-screen");
-// Initialize settings storage
-const store = new electron_store_1.default();
-// Проверка первого запуска
-const isFirstRun = !store.has('installed') || !store.get('installed');
-// Очистка старых данных при необходимости
-if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023') {
-    store.clear();
-    store.set('appName', 'JSR');
-}
-// Отключение аппаратного ускорения для предотвращения ошибок GPU
-electron_1.app.disableHardwareAcceleration();
-electron_1.app.commandLine.appendSwitch('disable-gpu');
-electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
-// Save window reference to prevent automatic closing
-let mainWindow;
+let mainWindow = null;
 function createWindow() {
-    console.log('createWindow called');
-    // Create browser window
-    console.log('Creating new BrowserWindow...');
-    const currentWindow = new electron_1.BrowserWindow({
-        width: 900,
-        height: 700,
+    console.log('Creating window...');
+    mainWindow = new electron_1.BrowserWindow({
+        width: 1200,
+        height: 800,
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false,
-            preload: path.join(__dirname, '../preload.js')
-        },
-        icon: path.join(__dirname, '../assets/images/Logo.png'),
-        autoHideMenuBar: true,
-        titleBarStyle: 'hidden',
-        frame: true
-    });
-    mainWindow = currentWindow; // Assign to the global mainWindow variable
-    // Обработчики для кнопок управления окном
-    electron_1.ipcMain.on('minimize-window', () => {
-        if (mainWindow) {
-            mainWindow.minimize();
+            contextIsolation: false
         }
     });
-    electron_1.ipcMain.on('maximize-window', () => {
-        if (mainWindow) {
-            if (mainWindow.isMaximized()) {
-                mainWindow.restore();
-            }
-            else {
-                mainWindow.maximize();
-            }
-        }
-    });
-    electron_1.ipcMain.on('close-window', () => {
-        if (mainWindow) {
-            mainWindow.close();
-        }
-    });
-    // Load index.html
-    // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
-    const indexPath = electron_1.app.isPackaged
-        ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
-        : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
-    // Установка пути к стилям
-    if (electron_1.app.isPackaged && mainWindow) {
-        mainWindow.webContents.on('did-finish-load', () => {
-            if (mainWindow) {
-                mainWindow.webContents.insertCSS(`
-          @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
-          @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
-        `);
-            }
-        });
-    }
-    if (currentWindow) { // Use local variable
-        console.log(`Attempting to load index.html from: ${indexPath}`);
-        currentWindow.loadFile(indexPath); // Use local variable
-        console.log('loadFile called');
-        // Add error handling for loading failures
-        currentWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-            console.error(`Failed to load URL: ${validatedURL}`);
-            console.error(`Error Code: ${errorCode}`);
-            console.error(`Error Description: ${errorDescription}`);
-            console.error(`Is Main Frame: ${isMainFrame}`);
-        });
-        // Show the window when it's ready to prevent a white flash
-        currentWindow.once('ready-to-show', () => {
-            console.log('mainWindow ready-to-show event triggered');
-            // Now currentWindow is guaranteed to be non-null inside this callback
-            currentWindow.show(); // This should now be fine
-        });
-        // Add a listener for did-finish-load to check if the page has loaded
-        currentWindow.webContents.on('did-finish-load', () => {
-            console.log('mainWindow did-finish-load event triggered');
-        });
-    }
-    // Open DevTools in development mode
-    // mainWindow.webContents.openDevTools();
+    const indexPath = path.join(__dirname, '../index.html');
+    console.log('Loading:', indexPath);
+    mainWindow.loadFile(indexPath);
 }
 // Create window when Electron is ready
 electron_1.app.whenReady().then(() => {
@@ -173,7 +88,7 @@ electron_1.app.whenReady().then(() => {
     });
     // Проверка первого запуска
     electron_1.ipcMain.handle('is-first-run', () => {
-        const store = new electron_store_1.default();
+        const store = new Store();
         const isFirstRun = !store.has('firstRun');
         if (isFirstRun) {
             store.set('firstRun', false);
@@ -323,7 +238,7 @@ electron_1.ipcMain.handle('get-java-installations', async () => {
 // Открытие внешних ссылок
 electron_1.ipcMain.handle('open-external-link', async (event, url) => {
     try {
-        await electron_1.shell.openExternal(url);
+        await shell.openExternal(url);
         return true;
     }
     catch (error) {
@@ -340,7 +255,7 @@ electron_1.ipcMain.handle('save-install-config', (event, config) => {
 });
 // Выбор директории установки
 electron_1.ipcMain.handle('select-install-directory', async () => {
-    const { canceled, filePaths } = await electron_1.dialog.showOpenDialog({
+    const { canceled, filePaths } = await dialog.showOpenDialog({
         title: 'Выберите папку для установки JSR',
         properties: ['openDirectory', 'createDirectory']
     });
