@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
-import { SplashScreen } from './splash-screen';
+import Store from 'electron-store';
+import * as si from 'systeminformation';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -10,6 +11,7 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    show: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -19,16 +21,28 @@ function createWindow(): void {
   const indexPath = path.join(__dirname, '../index.html');
   console.log('Loading:', indexPath);
   
-  mainWindow.loadFile(indexPath);
+  mainWindow.loadFile(indexPath).catch((error) => {
+    console.error('Failed to load file:', error);
+    console.log('Trying alternative path...');
+    const altPath = path.join(__dirname, '../../index.html');
+    console.log('Alternative path:', altPath);
+    mainWindow?.loadFile(altPath).catch((altError) => {
+      console.error('Failed to load alternative file:', altError);
+    });
+  });
+  
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page loaded successfully');
+  });
+  
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.error('Page failed to load:', errorCode, errorDescription);
+  });
 }
 
 // Create window when Electron is ready
 app.whenReady().then(() => {
-  // Показываем загрузочный экран
-  const splashScreen = new SplashScreen(() => {
-    createWindow();
-  });
-  splashScreen.create();
+  createWindow();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -166,11 +180,13 @@ ipcMain.handle('get-java-info', async () => {
 
 // Save settings
 ipcMain.on('save-settings', (event, settings) => {
+  const store = new Store();
   store.set('settings', settings);
 });
 
 // Get settings
 ipcMain.handle('get-settings', () => {
+  const store = new Store();
   return store.get('settings', {
     theme: 'light',
     language: 'en'
@@ -181,6 +197,7 @@ ipcMain.handle('get-settings', () => {
 
 // Получение настроек установки
 ipcMain.handle('get-install-config', () => {
+  const store = new Store();
   return store.get('install-config', {
     installDir: path.join(app.getPath('appData'), 'JSR'),
     language: 'ru',
@@ -240,6 +257,7 @@ ipcMain.handle('open-external-link', async (event, url) => {
 
 // Сохранение настроек установки
 ipcMain.handle('save-install-config', (event, config) => {
+  const store = new Store();
   store.set('install-config', config);
   store.set('installed', true);
   store.set('settings.language', config.language);

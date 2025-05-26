@@ -32,16 +32,21 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
-const splash_screen_1 = require("./splash-screen");
+const electron_store_1 = __importDefault(require("electron-store"));
+const si = __importStar(require("systeminformation"));
 let mainWindow = null;
 function createWindow() {
     console.log('Creating window...');
     mainWindow = new electron_1.BrowserWindow({
         width: 1200,
         height: 800,
+        show: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -49,15 +54,25 @@ function createWindow() {
     });
     const indexPath = path.join(__dirname, '../index.html');
     console.log('Loading:', indexPath);
-    mainWindow.loadFile(indexPath);
+    mainWindow.loadFile(indexPath).catch((error) => {
+        console.error('Failed to load file:', error);
+        console.log('Trying alternative path...');
+        const altPath = path.join(__dirname, '../../index.html');
+        console.log('Alternative path:', altPath);
+        mainWindow?.loadFile(altPath).catch((altError) => {
+            console.error('Failed to load alternative file:', altError);
+        });
+    });
+    mainWindow.webContents.on('did-finish-load', () => {
+        console.log('Page loaded successfully');
+    });
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('Page failed to load:', errorCode, errorDescription);
+    });
 }
 // Create window when Electron is ready
 electron_1.app.whenReady().then(() => {
-    // Показываем загрузочный экран
-    const splashScreen = new splash_screen_1.SplashScreen(() => {
-        createWindow();
-    });
-    splashScreen.create();
+    createWindow();
     electron_1.app.on('activate', function () {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open
@@ -88,7 +103,7 @@ electron_1.app.whenReady().then(() => {
     });
     // Проверка первого запуска
     electron_1.ipcMain.handle('is-first-run', () => {
-        const store = new Store();
+        const store = new electron_store_1.default();
         const isFirstRun = !store.has('firstRun');
         if (isFirstRun) {
             store.set('firstRun', false);
@@ -184,10 +199,12 @@ electron_1.ipcMain.handle('get-java-info', async () => {
 });
 // Save settings
 electron_1.ipcMain.on('save-settings', (event, settings) => {
+    const store = new electron_store_1.default();
     store.set('settings', settings);
 });
 // Get settings
 electron_1.ipcMain.handle('get-settings', () => {
+    const store = new electron_store_1.default();
     return store.get('settings', {
         theme: 'light',
         language: 'en'
@@ -196,6 +213,7 @@ electron_1.ipcMain.handle('get-settings', () => {
 // Дублирующаяся регистрация удалена - используется регистрация в createWindow()
 // Получение настроек установки
 electron_1.ipcMain.handle('get-install-config', () => {
+    const store = new electron_store_1.default();
     return store.get('install-config', {
         installDir: path.join(electron_1.app.getPath('appData'), 'JSR'),
         language: 'ru',
@@ -238,7 +256,7 @@ electron_1.ipcMain.handle('get-java-installations', async () => {
 // Открытие внешних ссылок
 electron_1.ipcMain.handle('open-external-link', async (event, url) => {
     try {
-        await shell.openExternal(url);
+        await electron_1.shell.openExternal(url);
         return true;
     }
     catch (error) {
@@ -248,6 +266,7 @@ electron_1.ipcMain.handle('open-external-link', async (event, url) => {
 });
 // Сохранение настроек установки
 electron_1.ipcMain.handle('save-install-config', (event, config) => {
+    const store = new electron_store_1.default();
     store.set('install-config', config);
     store.set('installed', true);
     store.set('settings.language', config.language);
@@ -255,7 +274,7 @@ electron_1.ipcMain.handle('save-install-config', (event, config) => {
 });
 // Выбор директории установки
 electron_1.ipcMain.handle('select-install-directory', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
+    const { canceled, filePaths } = await electron_1.dialog.showOpenDialog({
         title: 'Выберите папку для установки JSR',
         properties: ['openDirectory', 'createDirectory']
     });
