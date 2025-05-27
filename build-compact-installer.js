@@ -156,18 +156,87 @@ SOFTWARE.`;
   }
 }
 
+// Функция для удаления ненужных файлов перед сборкой
+async function cleanupFiles() {
+  console.log('Удаление ненужных файлов перед сборкой...');
+  
+  // Список шаблонов файлов, которые можно безопасно удалить
+  const patternsToRemove = [
+    'node_modules/**/*.md',
+    'node_modules/**/*.markdown',
+    'node_modules/**/*.ts',
+    'node_modules/**/*.map',
+    'node_modules/**/test/**',
+    'node_modules/**/tests/**',
+    'node_modules/**/docs/**',
+    'node_modules/**/example/**',
+    'node_modules/**/examples/**',
+    'node_modules/**/.github/**',
+    'node_modules/**/LICENSE*',
+    'node_modules/**/CHANGELOG*',
+    'node_modules/**/README*',
+    'node_modules/**/.npmignore',
+    'node_modules/**/.DS_Store',
+    'node_modules/**/.vscode/**',
+    'node_modules/**/.idea/**'
+  ];
+  
+  // Удаляем файлы по шаблонам
+  for (const pattern of patternsToRemove) {
+    try {
+      const command = process.platform === 'win32' 
+        ? `powershell -Command "Get-ChildItem -Path '${pattern}' -Recurse | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue"`
+        : `find node_modules -path '${pattern}' -delete`;
+      
+      await exec(command).catch(() => {}); // Игнорируем ошибки
+    } catch (error) {
+      // Игнорируем ошибки при удалении файлов
+    }
+  }
+  
+  console.log('Ненужные файлы удалены!');
+}
+
 // Функция для оптимизации размера сборки
 async function optimizeBuild() {
   console.log('Оптимизация размера сборки...');
-  
-  // Создаем временный файл конфигурации с максимальными настройками сжатия
-  const tempConfigPath = path.join(__dirname, 'compact-builder-config.yml');
-  const configContent = fs.readFileSync(path.join(__dirname, 'electron-builder.yml'), 'utf8');
   
   // Убедимся, что директория dist существует
   if (!fs.existsSync(path.join(__dirname, 'dist'))) {
     fs.mkdirSync(path.join(__dirname, 'dist'), { recursive: true });
   }
+  
+  // Очистка ненужных файлов
+  await cleanupFiles();
+  
+  // Создаем временный конфигурационный файл с максимальными настройками сжатия
+  const tempConfigPath = path.join(__dirname, 'temp-electron-builder.yml');
+  const originalConfigPath = path.join(__dirname, 'electron-builder.yml');
+  
+  // Читаем оригинальный конфиг
+  let configContent = fs.readFileSync(originalConfigPath, 'utf8');
+  
+  // Добавляем или обновляем настройки для максимального сжатия
+  if (!configContent.includes('compression: maximum')) {
+    configContent = configContent.replace(/compression:\s*\w+/g, 'compression: maximum');
+  }
+  
+  if (!configContent.includes('compressorName: lzma')) {
+    configContent = configContent.replace(/compressorName:\s*\w+/g, 'compressorName: lzma');
+  }
+  
+  // Добавляем настройки для solid архива
+  if (!configContent.includes('solid: true')) {
+    configContent = configContent.replace(/solid:\s*\w+/g, 'solid: true');
+  }
+  
+  // Устанавливаем максимальный уровень сжатия
+  if (!configContent.includes('level: 9')) {
+    configContent = configContent.replace(/level:\s*\d+/g, 'level: 9');
+  }
+  
+  // Записываем временный конфиг
+  fs.writeFileSync(tempConfigPath, configContent, 'utf8');
   
   // Компиляция TypeScript
   console.log('Компиляция TypeScript...');
@@ -175,7 +244,10 @@ async function optimizeBuild() {
   
   // Сборка с максимальной компрессией
   console.log('Сборка установщика с максимальной компрессией...');
-  execSync('npx electron-builder --win --x64 --config electron-builder.yml', { stdio: 'inherit' });
+  execSync(`npx electron-builder --win --x64 --config ${tempConfigPath}`, { stdio: 'inherit' });
+  
+  // Удаляем временный конфиг
+  fs.unlinkSync(tempConfigPath);
   
   // Получаем размер созданного установщика
   const distDir = path.join(__dirname, 'dist');

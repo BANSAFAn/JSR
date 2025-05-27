@@ -29,79 +29,88 @@ body {
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
+  overflow: hidden; /* Prevent scrollbars on main body */
 }
 
 .app-container {
   display: flex;
-  min-height: 100vh;
-  justify-content: center;
-}
-
-/* Боковой бар */
-.sidebar {
-  width: var(--sidebar-width);
-  background-color: var(--sidebar-background);
-  border-right: 1px solid var(--border-color);
+  flex-direction: column;
   height: 100vh;
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 100;
-  transform: translateX(-100%);
-  transition: transform 0.3s var(--animation-timing), background-color 0.3s var(--animation-timing), color 0.3s var(--animation-timing);
-  box-shadow: 2px 0 5px var(--shadow-color);
-  overflow-y: auto;
+  width: 100vw;
+  overflow: hidden;
 }
 
-.sidebar.open {
-  transform: translateX(0);
+.title-bar {
+  -webkit-app-region: drag;
+  height: 30px;
+  background-color: var(--card-background);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--text-color);
 }
 
-.sidebar-toggle {
-  position: fixed;
-  left: 10px;
-  top: 10px;
-  width: 40px;
-  height: 40px;
-  background-color: var(--primary-color);
-  color: white;
+.title-bar .app-title {
+  -webkit-app-region: no-drag;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.window-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+}
+
+.window-control-btn {
+  background: none;
   border: none;
-  border-radius: 50%;
+  color: var(--text-color);
+  font-size: 1rem;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 99;
-  box-shadow: 0 2px 5px var(--shadow-color);
-  transition: all 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
-.sidebar-toggle:hover {
-  transform: scale(1.1);
+.window-control-btn:hover {
+  background-color: var(--border-color);
 }
 
-.sidebar-toggle .toggle-icon {
-  font-size: 1.5rem;
+.window-control-btn:last-child:hover {
+  background-color: #e81123;
+  color: white;
 }
 
-.main-content.blur {
-  filter: blur(3px);
-  transition: filter 0.3s ease;
+.content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
-/* Боковая панель всегда видима */
+/* Sidebar */
 .sidebar {
-  color: var(--text-color);
+  width: var(--sidebar-width);
+  background-color: var(--sidebar-background);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px var(--shadow-color);
+  flex-shrink: 0;
 }
 
 .sidebar-header {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
+  text-align: center;
 }
 
 .sidebar-title {
-  text-align: center;
-  margin-bottom: 1rem;
   font-size: 2rem;
   font-weight: bold;
   background: linear-gradient(90deg, #ff0000, #ff8000, #ff4500);
@@ -116,6 +125,12 @@ body {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+.sidebar-content {
+  padding: 1rem;
+  flex-grow: 1;
+  overflow-y: auto;
 }
 
 .sidebar-buttons {
@@ -158,22 +173,18 @@ body {
   font-size: 1rem;
 }
 
-.sidebar-content {
-  padding: 1rem;
-}
-
-.sidebar-tab-content {
+.sidebar-section {
   display: none;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-.sidebar-tab-content.active {
+.sidebar-section.active {
   display: block;
   opacity: 1;
 }
 
-/* Стили для вкладки о программе */
+/* About Info Section */
 .about-info {
   display: flex;
   flex-direction: column;

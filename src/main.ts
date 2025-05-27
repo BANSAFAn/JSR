@@ -2,47 +2,80 @@ import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
 import * as path from 'path';
 import Store from 'electron-store';
 import * as si from 'systeminformation';
+import * as fs from 'fs';
+import { SplashScreen } from './splash-screen';
 
-let mainWindow: BrowserWindow | null = null;
+// Initialize settings storage
+const store = new Store();
+
+// Проверка первого запуска
+const isFirstRun = !store.has('installed') || !store.get('installed');
+
+// Очистка старых данных при необходимости
+if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023') {
+  store.clear();
+  store.set('appName', 'JSR');
+}
+
+// Отключение аппаратного ускорения для предотвращения ошибок GPU
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+
+// Save window reference to prevent automatic closing
+let mainWindow: BrowserWindow | null;
 
 function createWindow(): void {
-  console.log('Creating window...');
-  
+  // Create browser window
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    show: true,
+    width: 900,
+    height: 700,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
-    }
+      contextIsolation: false,
+      preload: path.join(__dirname, '../preload.js')
+    },
+    icon: path.join(__dirname, '../assets/images/Logo.png'),
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    frame: true
   });
   
-  const indexPath = path.join(__dirname, '../index.html');
-  console.log('Loading:', indexPath);
+  // Обработчики для кнопок управления окном уже зарегистрированы ниже
+
+  // Load index.html
+  // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
+  const indexPath = app.isPackaged
+    ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
+    : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
+    
+  // Установка пути к стилям
+  if (app.isPackaged && mainWindow) {
+    mainWindow.webContents.on('did-finish-load', () => {
+      if (mainWindow) {
+        mainWindow.webContents.insertCSS(`
+          @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
+          @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
+        `);
+      }
+    });  
+  }
   
-  mainWindow.loadFile(indexPath).catch((error) => {
-    console.error('Failed to load file:', error);
-    console.log('Trying alternative path...');
-    const altPath = path.join(__dirname, '../../index.html');
-    console.log('Alternative path:', altPath);
-    mainWindow?.loadFile(altPath).catch((altError) => {
-      console.error('Failed to load alternative file:', altError);
-    });
-  });
-  
-  mainWindow.webContents.on('did-finish-load', () => {
-    console.log('Page loaded successfully');
-  });
-  
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Page failed to load:', errorCode, errorDescription);
-  });
+  if (mainWindow) {
+    mainWindow.loadFile(indexPath);
+  }
+
+  // Open DevTools in development mode
+  // mainWindow.webContents.openDevTools();
 }
 
 // Create window when Electron is ready
 app.whenReady().then(() => {
-  createWindow();
+  // Показываем загрузочный экран
+  const splashScreen = new SplashScreen(() => {
+    createWindow();
+  });
+  splashScreen.create();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
@@ -180,13 +213,11 @@ ipcMain.handle('get-java-info', async () => {
 
 // Save settings
 ipcMain.on('save-settings', (event, settings) => {
-  const store = new Store();
   store.set('settings', settings);
 });
 
 // Get settings
 ipcMain.handle('get-settings', () => {
-  const store = new Store();
   return store.get('settings', {
     theme: 'light',
     language: 'en'
@@ -197,7 +228,6 @@ ipcMain.handle('get-settings', () => {
 
 // Получение настроек установки
 ipcMain.handle('get-install-config', () => {
-  const store = new Store();
   return store.get('install-config', {
     installDir: path.join(app.getPath('appData'), 'JSR'),
     language: 'ru',
@@ -257,7 +287,6 @@ ipcMain.handle('open-external-link', async (event, url) => {
 
 // Сохранение настроек установки
 ipcMain.handle('save-install-config', (event, config) => {
-  const store = new Store();
   store.set('install-config', config);
   store.set('installed', true);
   store.set('settings.language', config.language);

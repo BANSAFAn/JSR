@@ -21,6 +21,7 @@ directories:
   output: dist
   buildResources: assets
 compression: maximum
+compressionLevel: 9
 asar: true
 fileAssociations: []
 artifactBuildStarted: false
@@ -35,10 +36,10 @@ electronCompile:
   asar: true
 # Оптимизация размера сборки - исключаем только необходимые файлы из asar архива
 asarUnpack:
-  - "**/*.node"
-  - "**/assets/images/AppIcon.ico"
-  - "**/assets/images/installer-sidebar.png"
-  - "**/locales/**/*"
+  - "**/*.{node,dll}"
+  - "**/node_modules/sharp/**/*"
+  - "assets/images/**/*"
+  - "assets/locales/**/*"
 mac:
   category: public.app-category.utilities
   target:
@@ -101,11 +102,11 @@ nsis:
   artifactBuildStarted: false
   removePackageScripts: true
   # Оптимальное сжатие установщика
-  compression: normal
+  compression: maximum
   # Использование стандартного компрессора NSIS
-  compressorName: zlib
+  compressorName: lzma
   compressorOptions:
-    solid: false
+    solid: true
     level: 9
   # Современный интерфейс установщика
   modernUI: true

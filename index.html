@@ -9,187 +9,143 @@
   <title>JSR by BANSAFAn</title>
 </head>
 <body class="theme-light">
-  <!-- Заголовок с кнопками управления окном -->
-  <header class="window-header">
-    <div class="app-title">JSR by BANSAFAn</div>
-    <div class="window-controls">
-      <button id="minimize-btn" class="window-control-btn">_</button>
-      <button id="maximize-btn" class="window-control-btn">□</button>
-      <button id="close-btn" class="window-control-btn">×</button>
-    </div>
-  </header>
   <div class="app-container">
-    <!-- Кнопка переключения боковой панели -->
-    <button id="sidebar-toggle" class="sidebar-toggle">
-      <span class="toggle-icon">☰</span>
-    </button>
-    <!-- Боковой бар -->
-    <div id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <h2 class="sidebar-title">JSR</h2>
+    <!-- Window Controls and Title Bar -->
+    <header class="title-bar">
+      <div class="app-title">JSR by BANSAFAn</div>
+      <div class="window-controls">
+        <button id="minimize-btn" class="window-control-btn">_</button>
+        <button id="maximize-btn" class="window-control-btn">□</button>
+        <button id="close-btn" class="window-control-btn">×</button>
       </div>
-      
-      <div class="sidebar-content">
-        <div class="sidebar-buttons">
-          <button id="info-btn" class="sidebar-main-btn active" data-action="info">
-            <span class="btn-icon">ℹ️</span>
-            <span class="btn-text" data-i18n="infoButton">О программе</span>
-          </button>
-          <button id="search-java-btn" class="sidebar-main-btn" data-action="search-java">
-            <span class="btn-icon">🔍</span>
-            <span class="btn-text" data-i18n="searchJavaButton">Поиск Java на ПК</span>
-          </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+      <!-- Sidebar/Navigation (can be integrated differently) -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2 class="sidebar-title">JSR</h2>
         </div>
-        
-        <!-- Блок информации -->
-        <div id="info-content" class="sidebar-section active">
-          <div class="about-info">
-            <h3 data-i18n="aboutProgram">О программе</h3>
-            <p data-i18n="programDescription">JSR - приложение для определения подходящей версии Java для Minecraft.</p>
-            <div class="author-info">
-              <h4 data-i18n="author">Автор</h4>
-              <p>BANSAFAn</p>
-              <div class="author-links">
-                <a href="https://github.com/BANSAFAn" class="author-link" target="_blank">
-                  <span class="btn-icon">🌐</span> GitHub
-                </a>
-                <a href="https://www.youtube.com/channel/BANSAFAn" class="author-link" target="_blank">
-                  <span class="btn-icon">📺</span> YouTube
-                </a>
+        <div class="sidebar-content">
+          <div class="sidebar-buttons">
+            <button id="info-btn" class="sidebar-main-btn active" data-action="info">
+              <span class="btn-icon">ℹ️</span>
+              <span class="btn-text" data-i18n="infoButton">О программе</span>
+            </button>
+            <button id="search-java-btn" class="sidebar-main-btn" data-action="search-java">
+              <span class="btn-icon">🔍</span>
+              <span class="btn-text" data-i18n="searchJavaButton">Поиск Java на ПК</span>
+            </button>
+          </div>
+          <!-- Info Section -->
+          <div id="info-content" class="sidebar-section active">
+            <div class="about-info">
+              <h3 data-i18n="aboutProgram">О программе</h3>
+              <p data-i18n="programDescription">JSR - приложение для определения подходящей версии Java для Minecraft.</p>
+              <div class="author-info">
+                <h4 data-i18n="author">Автор</h4>
+                <p>BANSAFAn</p>
+                <div class="author-links">
+                  <a href="https://github.com/BANSAFAn" class="author-link" target="_blank">
+                    <span class="btn-icon">🌐</span> GitHub
+                  </a>
+                  <a href="https://www.youtube.com/channel/BANSAFAn" class="author-link" target="_blank">
+                    <span class="btn-icon">📺</span> YouTube
+                  </a>
+                </div>
+              </div>
+              <div class="version-info">
+                <h4 data-i18n="version">Версия</h4>
+                <p>1.0.0</p>
               </div>
             </div>
-            <div class="version-info">
-              <h4 data-i18n="version">Версия</h4>
-              <p>1.0.0</p>
+          </div>
+          <!-- Java Search Section -->
+          <div id="search-java-content" class="sidebar-section">
+            <div class="java-search-container">
+              <input type="text" id="java-search" data-i18n-placeholder="searchJava" placeholder="Поиск Java...">
+            </div>
+            <div id="java-list" class="java-list">
+              <!-- Список установленных Java будет добавлен динамически -->
+              <div class="loading-java">
+                <div class="spinner small"></div>
+                <p data-i18n="loadingJava">Загрузка информации о Java...</p>
+              </div>
             </div>
           </div>
         </div>
-        
-        <!-- Блок поиска Java -->
-        <div id="search-java-content" class="sidebar-section">
-          <div class="java-search-container">
-            <input type="text" id="java-search" data-i18n-placeholder="searchJava" placeholder="Поиск Java...">
-          </div>
-          <div id="java-list" class="java-list">
-            <!-- Список установленных Java будет добавлен динамически -->
-            <div class="loading-java">
-              <div class="spinner small"></div>
-              <p data-i18n="loadingJava">Загрузка информации о Java...</p>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="spinner"></div>
+          <p data-i18n="loading">Loading...</p>
+        </div>
+
+        <section class="system-info-section">
+          <h2 data-i18n="systemInfo">System Information</h2>
+          <div class="system-info-container">
+            <div class="info-card">
+              <h3 data-i18n="cpu">CPU</h3>
+              <p id="cpu-info">-</p>
+            </div>
+            <div class="info-card">
+              <h3 data-i18n="memory">Memory</h3>
+              <p id="memory-info">-</p>
+            </div>
+            <div class="info-card">
+              <h3 data-i18n="os">Operating System</h3>
+              <p id="os-info">-</p>
+            </div>
+            <div class="info-card">
+              <h3 data-i18n="gpu">Graphics</h3>
+              <p id="gpu-info">-</p>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="main-content">
-      <header>
-        <div class="logo">
-          <img src="assets/images/Logo.png" alt="JSR" class="logo-img">
-          <h1 class="app-title" data-i18n="appTitle">JSR by BANSAFAn</h1>
-        </div>
-        <div class="settings-panel">
-          <div class="language-selector">
-            <select id="language-select">
-              <option value="en">English</option>
-              <option value="ru">Русский</option>
-              <option value="uk">Українська</option>
-              <option value="de">Deutsch</option>
+        </section>
+
+        <section class="minecraft-section">
+          <h2 data-i18n="minecraftVersion">Minecraft Version</h2>
+          <div class="version-selector">
+            <select id="minecraft-version">
+              <option value="latest" data-i18n="latestRelease">Latest Release</option>
+              <option value="snapshot" data-i18n="latestSnapshot">Latest Snapshot</option>
+              <option value="beta" data-i18n="betaVersions">Beta Versions</option>
+              <option value="alpha" data-i18n="alphaVersions">Alpha Versions</option>
+              <option value="custom" data-i18n="customVersion">Custom Version</option>
             </select>
+            <div id="custom-version-container" class="hidden">
+              <input type="text" id="custom-version-input" data-i18n-placeholder="enterCustomVersion" placeholder="Enter custom version (e.g. 1.19.2)">
+            </div>
+            <button id="analyze-btn" class="analyze-btn"><i class="search-icon">🔍</i></button>
           </div>
-          <div class="theme-selector">
-            <button id="theme-light" class="theme-btn" data-theme="light">
-              <span class="theme-icon">☀️</span>
-            </button>
-            <button id="theme-dark" class="theme-btn" data-theme="dark">
-              <span class="theme-icon">🌙</span>
-            </button>
-            <button id="theme-neon" class="theme-btn" data-theme="neon">
-              <span class="theme-icon">⚡</span>
-            </button>
-          </div>
-          <div class="window-controls">
-            <button id="minimize-btn" class="window-control-btn" title="Свернуть">
-              <span class="control-icon">_</span>
-            </button>
-            <button id="maximize-btn" class="window-control-btn" title="Развернуть/Восстановить">
-              <span class="control-icon">□</span>
-            </button>
-            <button id="close-btn" class="window-control-btn" title="Закрыть">
-              <span class="control-icon">×</span>
-            </button>
-          </div>
-        </div>
-      </header>
+        </section>
 
-    <main>
-      <div class="loading-overlay" id="loading-overlay">
-        <div class="spinner"></div>
-        <p data-i18n="loading">Loading...</p>
-      </div>
-
-      <section class="system-info-section">
-        <h2 data-i18n="systemInfo">System Information</h2>
-        <div class="system-info-container">
-          <div class="info-card">
-            <h3 data-i18n="cpu">CPU</h3>
-            <p id="cpu-info">-</p>
-          </div>
-          <div class="info-card">
-            <h3 data-i18n="memory">Memory</h3>
-            <p id="memory-info">-</p>
-          </div>
-          <div class="info-card">
-            <h3 data-i18n="os">Operating System</h3>
-            <p id="os-info">-</p>
-          </div>
-          <div class="info-card">
-            <h3 data-i18n="gpu">Graphics</h3>
-            <p id="gpu-info">-</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="minecraft-section">
-        <h2 data-i18n="minecraftVersion">Minecraft Version</h2>
-        <div class="version-selector">
-          <select id="minecraft-version">
-            <option value="latest" data-i18n="latestRelease">Latest Release</option>
-            <option value="snapshot" data-i18n="latestSnapshot">Latest Snapshot</option>
-            <option value="beta" data-i18n="betaVersions">Beta Versions</option>
-            <option value="alpha" data-i18n="alphaVersions">Alpha Versions</option>
-            <option value="custom" data-i18n="customVersion">Custom Version</option>
-          </select>
-          <div id="custom-version-container" class="hidden">
-            <input type="text" id="custom-version-input" data-i18n-placeholder="enterCustomVersion" placeholder="Enter custom version (e.g. 1.19.2)">
-          </div>
-          <button id="analyze-btn" class="analyze-btn"><i class="search-icon">🔍</i></button>
-        </div>
-      </section>
-
-      <section class="results-section hidden" id="results-section">
-        <h2 data-i18n="recommendedJava">Recommended Java Version</h2>
-        <div class="results-container">
-          <div class="java-recommendation">
-            <h3 id="java-version-recommendation">Java 17</h3>
-            <p id="java-recommendation-reason"></p>
-          </div>
-          
-          <div class="download-options">
-            <h3 data-i18n="downloadOptions">Download Options</h3>
-            <div class="download-links" id="download-links">
-              <!-- Download links will be inserted here -->
+        <section class="results-section hidden" id="results-section">
+          <h2 data-i18n="recommendedJava">Recommended Java Version</h2>
+          <div class="results-container">
+            <div class="java-recommendation">
+              <h3 id="java-version-recommendation">Java 17</h3>
+              <p id="java-recommendation-reason"></p>
+            </div>
+            <div class="download-options">
+              <h3 data-i18n="downloadOptions">Download Options</h3>
+              <div class="download-links" id="download-links">
+                <!-- Download links will be inserted here -->
+              </div>
+            </div>
+            <div class="installation-guide">
+              <h3 data-i18n="installationGuide">Installation Guide</h3>
+              <div class="installation-steps" id="installation-steps">
+                <!-- Installation steps will be inserted here -->
+              </div>
             </div>
           </div>
-          
-          <div class="installation-guide">
-            <h3 data-i18n="installationGuide">Installation Guide</h3>
-            <div class="installation-steps" id="installation-steps">
-              <!-- Installation steps will be inserted here -->
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div> <!-- Закрытие main-content -->
+        </section>
+      </main>
+    </div>
 
     <footer>
       <p data-i18n="footerText">JSR © 2025</p>

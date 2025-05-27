@@ -9,13 +9,15 @@
 
 ; Дополнительные настройки для максимального сжатия
 SetCompressor /FINAL /SOLID lzma
-SetCompressorDictSize 64
+SetCompressorDictSize 128
 SetDatablockOptimize ON
 
 ; Оптимизация размера установщика
 !define COMPRESS_SCRIPTS
 !define COMPRESS_WHOLE
 !define NSIS_COMPRESS_WHOLE
+!define NSIS_CONFIG_COMPRESSION_SUPPORT
+!define NSIS_LZMA_COMPRESS_WHOLE
 
 ; Современный интерфейс
 !define MUI_ICON "..\assets\images\AppIcon.ico"
@@ -60,6 +62,25 @@ Function optimizeInstaller
   
   ; Удаление временных файлов после установки
   Delete "$TEMP\*.tmp"
+  
+  ; Оптимизация файловой системы - удаляем ненужные файлы
+  Delete "$INSTDIR\resources\app\node_modules\**\*.md"
+  Delete "$INSTDIR\resources\app\node_modules\**\*.markdown"
+  Delete "$INSTDIR\resources\app\node_modules\**\*.ts"
+  Delete "$INSTDIR\resources\app\node_modules\**\*.map"
+  Delete "$INSTDIR\resources\app\node_modules\**\LICENSE*"
+  Delete "$INSTDIR\resources\app\node_modules\**\README*"
+  Delete "$INSTDIR\resources\app\node_modules\**\CHANGELOG*"
+  Delete "$INSTDIR\resources\app\node_modules\**\.npmignore"
+  Delete "$INSTDIR\resources\app\node_modules\**\.DS_Store"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\test"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\tests"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\docs"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\example"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\examples"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\.github"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\.vscode"
+  RMDir /r "$INSTDIR\resources\app\node_modules\**\.idea"
   
   ; Оптимизация реестра - используем HKCU для пользовательской установки
   ${If} $MultiUser.InstallMode == "CurrentUser"

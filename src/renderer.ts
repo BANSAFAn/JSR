@@ -87,8 +87,7 @@ i18next.init({
   }
 });
 
-// Импорт модуля бокового бара
-import { Sidebar } from './sidebar';
+
 
 // Java version data for Minecraft
 const javaVersionMap: JavaVersionMap = {
@@ -193,8 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Setup event listeners
   setupEventListeners();
   
-  // Initialize sidebar
-  const sidebar = new Sidebar();
+  // Window controls обрабатываются в setupEventListeners()
   
   // Добавляем анимацию появления контента
   setTimeout(() => {
@@ -341,7 +339,7 @@ function getCompatibleMinecraftVersions(javaVersion: string): string[] {
 
 // Setup event listeners
 function setupEventListeners(): void {
-  // Кнопки управления окном
+  // Кнопки управления окном (уже есть, но убедимся, что они в setupEventListeners)
   const minimizeBtn = document.getElementById('minimize-btn');
   const maximizeBtn = document.getElementById('maximize-btn');
   const closeBtn = document.getElementById('close-btn');
@@ -389,7 +387,7 @@ function setupEventListeners(): void {
     analyzeBtn.addEventListener('click', analyzeMinecraftVersion);
   }
   
-  // Language selector
+  // Language selection
   const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
   if (languageSelect) {
     languageSelect.addEventListener('change', (e) => {
@@ -412,7 +410,7 @@ function setupEventListeners(): void {
     });
   });
   
-  // Боковая панель
+  // Боковая панель (sidebar-toggle, sidebar, main-content)
   const sidebarToggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('sidebar');
   const mainContent = document.querySelector('.main-content');
@@ -424,7 +422,7 @@ function setupEventListeners(): void {
     });
   }
   
-  // Кнопки боковой панели
+  // Кнопки боковой панели (sidebar-main-btn)
   const sidebarButtons = document.querySelectorAll('.sidebar-main-btn');
   const sidebarSections = document.querySelectorAll('.sidebar-section');
   
@@ -446,6 +444,15 @@ function setupEventListeners(): void {
         }
       }
     });
+  });
+
+  // Author links
+  document.getElementById('github-link')?.addEventListener('click', () => {
+    window.electronAPI.openExternalLink('https://github.com/BANSAFAn');
+  });
+
+  document.getElementById('youtube-link')?.addEventListener('click', () => {
+    window.electronAPI.openExternalLink('https://www.youtube.com/@BANSAFAn');
   });
 }
 
