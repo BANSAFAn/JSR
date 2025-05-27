@@ -21,8 +21,6 @@ i18next_1.default.init({
         de: { translation: translations.de }
     }
 });
-// Импорт модуля бокового бара
-const sidebar_1 = require("./sidebar");
 // Java version data for Minecraft
 const javaVersionMap = {
     // Release versions
@@ -119,8 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await getSystemInfo();
     // Setup event listeners
     setupEventListeners();
-    // Initialize sidebar
-    const sidebar = new sidebar_1.Sidebar();
+    // Window controls обрабатываются в setupEventListeners()
     // Добавляем анимацию появления контента
     setTimeout(() => {
         document.body.classList.add('content-loaded');
@@ -187,7 +184,7 @@ function displayJavaInfo(javaInfo) {
         return;
     // Очищаем список
     javaListElement.innerHTML = '';
-    if (javaInfo.length === 0 || javaInfo.error) {
+    if (javaInfo.length === 0) {
         const noJavaElement = document.createElement('div');
         noJavaElement.className = 'no-java-info';
         noJavaElement.textContent = i18next_1.default.t('noJavaFound');
@@ -246,7 +243,7 @@ function getCompatibleMinecraftVersions(javaVersion) {
 }
 // Setup event listeners
 function setupEventListeners() {
-    // Кнопки управления окном
+    // Кнопки управления окном (уже есть, но убедимся, что они в setupEventListeners)
     const minimizeBtn = document.getElementById('minimize-btn');
     const maximizeBtn = document.getElementById('maximize-btn');
     const closeBtn = document.getElementById('close-btn');
@@ -287,7 +284,7 @@ function setupEventListeners() {
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', analyzeMinecraftVersion);
     }
-    // Language selector
+    // Language selection
     const languageSelect = document.getElementById('language-select');
     if (languageSelect) {
         languageSelect.addEventListener('change', (e) => {
@@ -308,7 +305,7 @@ function setupEventListeners() {
             }
         });
     });
-    // Боковая панель
+    // Боковая панель (sidebar-toggle, sidebar, main-content)
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.querySelector('.main-content');
@@ -318,7 +315,7 @@ function setupEventListeners() {
             mainContent.classList.toggle('blur');
         });
     }
-    // Кнопки боковой панели
+    // Кнопки боковой панели (sidebar-main-btn)
     const sidebarButtons = document.querySelectorAll('.sidebar-main-btn');
     const sidebarSections = document.querySelectorAll('.sidebar-section');
     sidebarButtons.forEach(button => {
@@ -337,6 +334,13 @@ function setupEventListeners() {
                 }
             }
         });
+    });
+    // Author links
+    document.getElementById('github-link')?.addEventListener('click', () => {
+        window.electronAPI.openExternalLink('https://github.com/BANSAFAn');
+    });
+    document.getElementById('youtube-link')?.addEventListener('click', () => {
+        window.electronAPI.openExternalLink('https://www.youtube.com/@BANSAFAn');
     });
 }
 // Toggle custom version input visibility

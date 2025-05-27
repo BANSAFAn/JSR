@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, shell, session } from 'electron';
 import * as path from 'path';
 import Store from 'electron-store';
 import * as si from 'systeminformation';
@@ -22,6 +22,19 @@ app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 
+// Set Content-Security-Policy for all windows
+app.whenReady().then(() => {
+  // Устанавливаем Content-Security-Policy через session
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"]
+      }
+    });
+  });
+});
+
 // Save window reference to prevent automatic closing
 let mainWindow: BrowserWindow | null;
 
@@ -33,7 +46,8 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      preload: path.join(__dirname, '../preload.js')
+      preload: path.join(__dirname, '../preload.js'),
+      webSecurity: true
     },
     icon: path.join(__dirname, '../assets/images/Logo.png'),
     autoHideMenuBar: true,
@@ -41,8 +55,6 @@ function createWindow(): void {
     frame: true
   });
   
-  // Обработчики для кнопок управления окном уже зарегистрированы ниже
-
   // Load index.html
   // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
   const indexPath = app.isPackaged

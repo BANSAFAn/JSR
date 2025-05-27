@@ -3,8 +3,8 @@
 <head>
   <script>console.log('index.html head loaded');</script>
   <meta charset="UTF-8">
-  <!-- Temporarily simplified CSP for debugging -->
-  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; style-src * 'unsafe-inline';">
+  <!-- Improved Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
   <link rel="stylesheet" href="styles/main.css">
   <title>JSR by BANSAFAn</title>
 </head>

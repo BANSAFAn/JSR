@@ -40,39 +40,79 @@ const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const electron_store_1 = __importDefault(require("electron-store"));
 const si = __importStar(require("systeminformation"));
-let mainWindow = null;
-function createWindow() {
-    console.log('Creating window...');
-    mainWindow = new electron_1.BrowserWindow({
-        width: 1200,
-        height: 800,
-        show: true,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
-    const indexPath = path.join(__dirname, '../index.html');
-    console.log('Loading:', indexPath);
-    mainWindow.loadFile(indexPath).catch((error) => {
-        console.error('Failed to load file:', error);
-        console.log('Trying alternative path...');
-        const altPath = path.join(__dirname, '../../index.html');
-        console.log('Alternative path:', altPath);
-        mainWindow?.loadFile(altPath).catch((altError) => {
-            console.error('Failed to load alternative file:', altError);
+const splash_screen_1 = require("./splash-screen");
+// Initialize settings storage
+const store = new electron_store_1.default();
+// Проверка первого запуска
+const isFirstRun = !store.has('installed') || !store.get('installed');
+// Очистка старых данных при необходимости
+if (store.has('appName') && store.get('appName') === 'Minecraft Java Finder 2023') {
+    store.clear();
+    store.set('appName', 'JSR');
+}
+// Отключение аппаратного ускорения для предотвращения ошибок GPU
+electron_1.app.disableHardwareAcceleration();
+electron_1.app.commandLine.appendSwitch('disable-gpu');
+electron_1.app.commandLine.appendSwitch('disable-gpu-sandbox');
+// Set Content-Security-Policy for all windows
+electron_1.app.whenReady().then(() => {
+    // Устанавливаем Content-Security-Policy через session
+    electron_1.session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        callback({
+            responseHeaders: {
+                ...details.responseHeaders,
+                'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"]
+            }
         });
     });
-    mainWindow.webContents.on('did-finish-load', () => {
-        console.log('Page loaded successfully');
+});
+// Save window reference to prevent automatic closing
+let mainWindow;
+function createWindow() {
+    // Create browser window
+    mainWindow = new electron_1.BrowserWindow({
+        width: 900,
+        height: 700,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false,
+            preload: path.join(__dirname, '../preload.js'),
+            webSecurity: true
+        },
+        icon: path.join(__dirname, '../assets/images/Logo.png'),
+        autoHideMenuBar: true,
+        titleBarStyle: 'hidden',
+        frame: true
     });
-    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-        console.error('Page failed to load:', errorCode, errorDescription);
-    });
+    // Load index.html
+    // Определяем правильный путь к файлам в зависимости от режима разработки или продакшн
+    const indexPath = electron_1.app.isPackaged
+        ? path.join(__dirname, '../index.html') // Путь в продакшн сборке
+        : path.join(__dirname, '../../index.html'); // Путь в режиме разработки (из dist обратно в корень)
+    // Установка пути к стилям
+    if (electron_1.app.isPackaged && mainWindow) {
+        mainWindow.webContents.on('did-finish-load', () => {
+            if (mainWindow) {
+                mainWindow.webContents.insertCSS(`
+          @import url('${path.join(__dirname, '../styles/main.css').replace(/\\/g, '/')}');
+          @import url('${path.join(__dirname, '../styles/themes/light.css').replace(/\\/g, '/')}');
+        `);
+            }
+        });
+    }
+    if (mainWindow) {
+        mainWindow.loadFile(indexPath);
+    }
+    // Open DevTools in development mode
+    // mainWindow.webContents.openDevTools();
 }
 // Create window when Electron is ready
 electron_1.app.whenReady().then(() => {
-    createWindow();
+    // Показываем загрузочный экран
+    const splashScreen = new splash_screen_1.SplashScreen(() => {
+        createWindow();
+    });
+    splashScreen.create();
     electron_1.app.on('activate', function () {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open
@@ -189,31 +229,28 @@ electron_1.ipcMain.handle('get-java-info', async () => {
         if (javaInstallations.length === 0) {
             // Здесь можно добавить дополнительную логику поиска Java через команды
             // Например, выполнить команду 'java -version' и разобрать вывод
+            return [];
         }
         return javaInstallations;
     }
     catch (error) {
         console.error('Error getting Java info:', error);
-        return { error: 'Failed to get Java information' };
+        return [];
     }
 });
 // Save settings
 electron_1.ipcMain.on('save-settings', (event, settings) => {
-    const store = new electron_store_1.default();
     store.set('settings', settings);
 });
 // Get settings
 electron_1.ipcMain.handle('get-settings', () => {
-    const store = new electron_store_1.default();
     return store.get('settings', {
         theme: 'light',
         language: 'en'
     });
 });
-// Дублирующаяся регистрация удалена - используется регистрация в createWindow()
 // Получение настроек установки
 electron_1.ipcMain.handle('get-install-config', () => {
-    const store = new electron_store_1.default();
     return store.get('install-config', {
         installDir: path.join(electron_1.app.getPath('appData'), 'JSR'),
         language: 'ru',
@@ -266,7 +303,6 @@ electron_1.ipcMain.handle('open-external-link', async (event, url) => {
 });
 // Сохранение настроек установки
 electron_1.ipcMain.handle('save-install-config', (event, config) => {
-    const store = new electron_store_1.default();
     store.set('install-config', config);
     store.set('installed', true);
     store.set('settings.language', config.language);

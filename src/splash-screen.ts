@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import * as path from 'path';
 
 export class SplashScreen {
@@ -19,7 +19,8 @@ export class SplashScreen {
       resizable: false,
       webPreferences: {
         nodeIntegration: true,
-        contextIsolation: false
+        contextIsolation: false,
+        webSecurity: true
       },
       icon: path.join(__dirname, '../assets/images/Logo.png')
     });
