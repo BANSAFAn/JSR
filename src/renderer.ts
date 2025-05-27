@@ -267,7 +267,7 @@ function displayJavaInfo(javaInfo: any[]): void {
   // Очищаем список
   javaListElement.innerHTML = '';
   
-  if (javaInfo.length === 0 || (javaInfo as any).error) {
+  if (javaInfo.length === 0) {
     const noJavaElement = document.createElement('div');
     noJavaElement.className = 'no-java-info';
     noJavaElement.textContent = i18next.t('noJavaFound');

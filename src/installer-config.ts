@@ -72,15 +72,25 @@ export function checkInstallDirectoryAccess(dirPath: string): boolean {
     // Проверяем, существует ли директория
     if (!fs.existsSync(dirPath)) {
       // Пытаемся создать директорию
-      fs.mkdirSync(dirPath, { recursive: true });
+      try {
+        fs.mkdirSync(dirPath, { recursive: true });
+        console.log(`Директория создана: ${dirPath}`);
+      } catch (dirError) {
+        console.error(`Ошибка при создании директории: ${dirPath}`, dirError);
+        return false;
+      }
     }
     
     // Проверяем права на запись
-    const testFile = path.join(dirPath, '.write-test');
-    fs.writeFileSync(testFile, 'test');
-    fs.unlinkSync(testFile);
-    
-    return true;
+    try {
+      const testFile = path.join(dirPath, '.write-test');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      return true;
+    } catch (writeError) {
+      console.error(`Ошибка при проверке прав на запись в директорию: ${dirPath}`, writeError);
+      return false;
+    }
   } catch (error) {
     console.error('Ошибка доступа к директории установки:', error);
     return false;

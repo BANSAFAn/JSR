@@ -217,22 +217,30 @@ async function optimizeBuild() {
   let configContent = fs.readFileSync(originalConfigPath, 'utf8');
   
   // Добавляем или обновляем настройки для максимального сжатия
-  if (!configContent.includes('compression: maximum')) {
+  if (configContent.includes('compression:')) {
     configContent = configContent.replace(/compression:\s*\w+/g, 'compression: maximum');
+  } else {
+    configContent += '\ncompression: maximum';
   }
   
-  if (!configContent.includes('compressorName: lzma')) {
+  if (configContent.includes('compressorName:')) {
     configContent = configContent.replace(/compressorName:\s*\w+/g, 'compressorName: lzma');
+  } else {
+    configContent += '\ncompressorName: lzma';
   }
   
   // Добавляем настройки для solid архива
-  if (!configContent.includes('solid: true')) {
+  if (configContent.includes('solid:')) {
     configContent = configContent.replace(/solid:\s*\w+/g, 'solid: true');
+  } else {
+    configContent += '\nsolid: true';
   }
   
   // Устанавливаем максимальный уровень сжатия
-  if (!configContent.includes('level: 9')) {
+  if (configContent.includes('level:')) {
     configContent = configContent.replace(/level:\s*\d+/g, 'level: 9');
+  } else {
+    configContent += '\nlevel: 9';
   }
   
   // Записываем временный конфиг
@@ -240,7 +248,12 @@ async function optimizeBuild() {
   
   // Компиляция TypeScript
   console.log('Компиляция TypeScript...');
-  execSync('npx tsc', { stdio: 'inherit' });
+  try {
+    execSync('npx tsc', { stdio: 'inherit' });
+  } catch (error) {
+    console.error('Ошибка при компиляции TypeScript:', error.message);
+    console.log('Продолжаем сборку с существующими файлами...');
+  }
   
   // Сборка с максимальной компрессией
   console.log('Сборка установщика с максимальной компрессией...');

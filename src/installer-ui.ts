@@ -98,16 +98,7 @@ function createInstallDialog(): void {
   browseButton = document.createElement('button');
   browseButton.textContent = 'Обзор...';
   browseButton.className = 'browse-button';
-  browseButton.addEventListener('click', () => {
-    ipcRenderer.invoke('select-install-directory').then((dir: string | null) => {
-      if (dir && installDirInput) {
-        installDirInput.value = dir;
-      }
-    }).catch(error => {
-      console.error('Ошибка при выборе директории установки:', error);
-      alert('Не удалось выбрать директорию. Пожалуйста, попробуйте еще раз.');
-    });
-  });
+  browseButton.addEventListener('click', handleBrowseButtonClick);
   
   dirInputGroup.appendChild(installDirInput);
   dirInputGroup.appendChild(browseButton);
@@ -452,4 +443,16 @@ function addInstallerStyles(): void {
   `;
   
   document.head.appendChild(style);
+}
+
+// Обработчик нажатия на кнопку "Обзор"
+function handleBrowseButtonClick(): void {
+  ipcRenderer.invoke('select-install-directory').then((dir: string | null) => {
+    if (dir && installDirInput) {
+      installDirInput.value = dir;
+    }
+  }).catch(error => {
+    console.error('Ошибка при выборе директории установки:', error);
+    alert('Не удалось выбрать директорию установки. Пожалуйста, попробуйте еще раз.');
+  });
 }

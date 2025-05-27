@@ -27,9 +27,11 @@ export class SplashScreen {
     // Загружаем HTML для загрузочного экрана
     this.window.loadFile(path.join(__dirname, '../splash.html'));
 
-    // Скрываем окно при закрытии вместо уничтожения
+    // Обрабатываем событие закрытия окна
     this.window.on('close', (event) => {
+      // Предотвращаем закрытие окна по умолчанию
       event.preventDefault();
+      // Скрываем окно вместо закрытия
       if (this.window) {
         this.window.hide();
       }
@@ -44,6 +46,8 @@ export class SplashScreen {
 
   public close(): void {
     if (this.window) {
+      // Удаляем обработчик события close перед уничтожением окна
+      this.window.removeAllListeners('close');
       this.window.destroy();
       this.window = null;
     }

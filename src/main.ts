@@ -202,12 +202,13 @@ ipcMain.handle('get-java-info', async () => {
     if (javaInstallations.length === 0) {
       // Здесь можно добавить дополнительную логику поиска Java через команды
       // Например, выполнить команду 'java -version' и разобрать вывод
+      return [];
     }
     
     return javaInstallations;
   } catch (error) {
     console.error('Error getting Java info:', error);
-    return { error: 'Failed to get Java information' };
+    return [];
   }
 });
 
@@ -223,8 +224,6 @@ ipcMain.handle('get-settings', () => {
     language: 'en'
   });
 });
-
-// Дублирующаяся регистрация удалена - используется регистрация в createWindow()
 
 // Получение настроек установки
 ipcMain.handle('get-install-config', () => {
