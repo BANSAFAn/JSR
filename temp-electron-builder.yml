@@ -1,0 +1,129 @@
+appId: com.bansafan.jsr
+productName: JSR
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - assets/**/*
+  - locales/**/*
+  - styles/**/*
+  - index.html
+  - splash.html
+  - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*/{.bin,.idea,.vscode,docs,doc,website}"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!**/{.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{appveyor.yml,.travis.yml,circle.yml}"
+  - "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+directories:
+  output: dist
+  buildResources: assets
+compression: maximum
+compressionLevel: 9
+asar: true
+fileAssociations: []
+artifactBuildStarted: false
+removePackageScripts: true
+forceCodeSigning: false
+packageCache: false
+# Оптимизация размера сборок
+electronCompile:
+  cache: true
+  nodeModulesPath: []
+  prune: true
+  asar: true
+# Оптимизация размера сборки - исключаем только необходимые файлы из asar архива
+asarUnpack:
+  - "**/*.{node,dll}"
+  - "**/node_modules/sharp/**/*"
+  - "assets/images/**/*"
+  - "assets/locales/**/*"
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+  artifactName: ${productName}-${version}.${ext}
+  darkModeSupport: true
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  minimumSystemVersion: "10.11.0"
+  compression: maximum
+win:
+  target: nsis
+  icon: assets/images/AppIcon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+  compression: maximum
+  signAndEditExecutable: false
+  signDlls: false
+  publisherName: BANSAFAn
+  # Оптимизация для Windows
+  legalTrademarks: "BANSAFAn"
+  # Отключаем подписывание кода
+  forceCodeSigning: false
+  # Дополнительные настройки для уменьшения размера
+  extraResources: 
+    - from: "assets/images/Logo.png"
+      to: "Logo.png"
+nsis:
+  oneClick: false
+  perMachine: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: JSR
+  license: LICENSE
+  installerIcon: assets/images/AppIcon.ico
+  uninstallerIcon: assets/images/AppIcon.ico
+  installerHeaderIcon: assets/images/AppIcon.ico
+  installerSidebar: assets/images/installer-sidebar.png
+  uninstallerSidebar: assets/images/installer-sidebar.png
+  allowElevation: true
+  runAfterFinish: true
+  artifactName: ${productName}-Setup-${version}.${ext}
+  deleteAppDataOnUninstall: true
+  displayLanguageSelector: true
+  menuCategory: true
+  multiLanguageInstaller: true
+  # Включаем многоязычный установщик
+  installerLanguages:
+    - en
+    - ru
+    - uk
+    - de
+  include: 
+    - assets/nsis-translations.nsh
+    - assets/installer.nsh
+  packElevateHelper: false
+  warningsAsErrors: false
+  unicode: true
+  differentialPackage: false
+  artifactBuildStarted: false
+  removePackageScripts: true
+  # Оптимальное сжатие установщика
+  compression: maximum
+  # Использование стандартного компрессора NSIS
+  compressorName: lzma
+  compressorOptions:
+    solid: true
+    level: 9
+  # Современный интерфейс установщика
+  modernUI: true
+  # Красивая анимация установки
+  installerSplashImage: assets/images/installer-sidebar.png
+linux:
+  target:
+    - AppImage
+  category: Utility
+  artifactName: ${productName}-${version}.${ext}
+  synopsis: "Java Selection for Minecraft"
+  compression: maximum
+  executableName: jsr
+publish:
+  - provider: github
+    owner: BANSAFAn
+    repo: JSR
+    releaseType: release
+    vPrefixedTagName: true
+    publishAutoUpdate: true

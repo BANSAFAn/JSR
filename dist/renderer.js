@@ -243,6 +243,7 @@ function getCompatibleMinecraftVersions(javaVersion) {
 }
 // Setup event listeners
 function setupEventListeners() {
+    var _a, _b;
     // Кнопки управления окном (уже есть, но убедимся, что они в setupEventListeners)
     const minimizeBtn = document.getElementById('minimize-btn');
     const maximizeBtn = document.getElementById('maximize-btn');
@@ -336,10 +337,10 @@ function setupEventListeners() {
         });
     });
     // Author links
-    document.getElementById('github-link')?.addEventListener('click', () => {
+    (_a = document.getElementById('github-link')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', () => {
         window.electronAPI.openExternalLink('https://github.com/BANSAFAn');
     });
-    document.getElementById('youtube-link')?.addEventListener('click', () => {
+    (_b = document.getElementById('youtube-link')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', () => {
         window.electronAPI.openExternalLink('https://www.youtube.com/@BANSAFAn');
     });
 }
