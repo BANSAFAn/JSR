@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "powershell-mkdir--p-src-taurisrc",
-  "version": "0.1.0",
-  "identifier": "com.powershell-mkdir--p-src-taurisrc.app",
+  "productName": "JSR",
+  "version": "1.0.0",
+  "identifier": "com.bansafan.jsr",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "powershell-mkdir--p-src-taurisrc",
-        "width": 800,
-        "height": 600
+        "title": "JSR by BANSAFAn",
+        "width": 900,
+        "height": 700,
+        "minWidth": 800,
+        "minHeight": 600
       }
     ],
     "security": {

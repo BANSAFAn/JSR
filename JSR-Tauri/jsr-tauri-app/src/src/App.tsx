@@ -1,50 +1,152 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useTranslation } from "react-i18next";
+import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
+import SystemInfo from "./components/SystemInfo";
+import MinecraftVersionSelector from "./components/MinecraftVersionSelector";
+import JavaRecommendation from "./components/JavaRecommendation";
+import Footer from "./components/Footer";
+import Loading from "./components/Loading";
+import { SystemInfo as SystemInfoType, Settings } from "./types";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const { i18n } = useTranslation();
+  const [theme, setTheme] = useState<string>("light");
+  const [activeSection, setActiveSection] = useState<string>("info");
+  const [systemInfo, setSystemInfo] = useState<SystemInfoType | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [javaInstallations, setJavaInstallations] = useState<any[]>([]);
+  const [isLoadingJava, setIsLoadingJava] = useState<boolean>(false);
+  const [selectedVersion, setSelectedVersion] = useState<string>("");
+  const [customVersion, setCustomVersion] = useState<string>("");
+  const [showJavaRecommendation, setShowJavaRecommendation] = useState<boolean>(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await invoke<Settings>("get_settings");
+        setTheme(settings.theme);
+        i18n.changeLanguage(settings.language);
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Load system info on mount
+  useEffect(() => {
+    const getSystemInfo = async () => {
+      setIsLoading(true);
+      try {
+        const info = await invoke<SystemInfoType>("get_system_info");
+        setSystemInfo(info);
+      } catch (error) {
+        console.error("Error getting system info:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getSystemInfo();
+  }, []);
+
+  // Toggle theme
+  const toggleTheme = async () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    document.body.className = `theme-${newTheme}`;
+    
+    // Save settings
+    try {
+      await invoke("save_settings", {
+        settings: {
+          theme: newTheme,
+          language: i18n.language
+        }
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+    }
+  };
+
+  // Handle section change
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    
+    if (section === "search-java") {
+      // Load Java installations when switching to Java tab
+      // This would be implemented in a real app
+      setIsLoadingJava(true);
+      // Simulate loading Java installations
+      setTimeout(() => {
+        setJavaInstallations([
+          {
+            version: "17.0.2",
+            vendor: "Oracle",
+            path: "C:\\Program Files\\Java\\jdk-17.0.2",
+            arch: "x64",
+            isDefault: true
+          },
+          {
+            version: "1.8.0_301",
+            vendor: "AdoptOpenJDK",
+            path: "C:\\Program Files\\AdoptOpenJDK\\jdk-8.0.301-hotspot",
+            arch: "x64",
+            isDefault: false
+          }
+        ]);
+        setIsLoadingJava(false);
+      }, 1500);
+    }
+  };
+
+  // Handle version selection
+  const handleVersionSelect = (version: string, customVer?: string) => {
+    setSelectedVersion(version);
+    if (customVer) {
+      setCustomVersion(customVer);
+    }
+    setShowJavaRecommendation(true);
+  };
+
+  // Apply theme class to body
+  useEffect(() => {
+    document.body.className = `theme-${theme}`;
+  }, [theme]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
+    <div className="app-container">
+      <Header onThemeToggle={toggleTheme} theme={theme} />
+      
+      <div className="content-area">
+        <Sidebar 
+          activeSection={activeSection} 
+          onSectionChange={handleSectionChange}
+          javaInstallations={javaInstallations}
+          isLoadingJava={isLoadingJava}
         />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+        
+        <main className="main-content">
+          <Loading isLoading={isLoading} />
+          
+          <SystemInfo systemInfo={systemInfo} isLoading={isLoading} />
+          
+          <MinecraftVersionSelector onVersionSelect={handleVersionSelect} />
+          
+          <JavaRecommendation 
+            selectedVersion={selectedVersion}
+            customVersion={customVersion}
+            isVisible={showJavaRecommendation}
+          />
+          
+          <Footer />
+        </main>
+      </div>
+    </div>
   );
 }
 
