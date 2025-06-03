@@ -4,8 +4,14 @@ on:
   pull_request:
     branches: [ main ]
     paths:
-      - 'jsr-tauri-app/**'
+      - 'JSR-Tauri/jsr-tauri-app/**'
       - '.github/workflows/tauri-build-pr.yml'
+
+# Add explicit permissions for the workflow
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   build-tauri:
@@ -23,7 +29,7 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: './jsr-tauri-app/src/package-lock.json'
+          cache-dependency-path: './JSR-Tauri/jsr-tauri-app/src/package-lock.json'
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -36,14 +42,14 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
-        working-directory: ./jsr-tauri-app/src
+        working-directory: ./JSR-Tauri/jsr-tauri-app/src
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.jsr_token }}
         with:
-          projectPath: './jsr-tauri-app/src'
+          projectPath: './JSR-Tauri/jsr-tauri-app/src'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
