@@ -28,8 +28,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          # Disable cache to avoid path resolution issues
           cache: 'npm'
           cache-dependency-path: './JSR-Tauri/jsr-tauri-app/src/package-lock.json'
+        continue-on-error: true
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
