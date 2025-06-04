@@ -42,16 +42,77 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const { data } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: `v${{ steps.app-version.outputs.version }}`,
-              name: `JSR v${{ steps.app-version.outputs.version }}`,
-              body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
-              draft: false,
-              prerelease: false
-            })
-            return data.id
+            // Function to check if a tag exists
+            async function tagExists(tag) {
+              try {
+                await github.rest.git.getRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `tags/${tag}`
+                });
+                return true;
+              } catch (error) {
+                if (error.status === 404) return false;
+                throw error;
+              }
+            }
+            
+            // Function to increment version
+            function incrementVersion(version) {
+              const parts = version.split('.');
+              parts[parts.length - 1] = (parseInt(parts[parts.length - 1]) + 1).toString();
+              return parts.join('.');
+            }
+            
+            // Initial version from app config
+            let version = '${{ steps.app-version.outputs.version }}';
+            let tagName = `v${version}`;
+            
+            // Check if the tag already exists
+            let tagAlreadyExists = await tagExists(tagName);
+            
+            // If tag exists, try to increment the version
+            if (tagAlreadyExists) {
+              console.log(`Release with tag ${tagName} already exists. Creating a new tag with incremented version.`);
+              
+              // Try up to 5 incremented versions
+              for (let i = 0; i < 5; i++) {
+                version = incrementVersion(version);
+                tagName = `v${version}`;
+                console.log(`Trying with incremented version: ${tagName}`);
+                
+                tagAlreadyExists = await tagExists(tagName);
+                if (!tagAlreadyExists) break;
+              }
+              
+              // If we still have a tag conflict after 5 attempts, use timestamp
+              if (tagAlreadyExists) {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                version = `${version}-${timestamp}`;
+                tagName = `v${version}`;
+                console.log(`Using timestamped version: ${tagName}`);
+              }
+            }
+            
+            try {
+              const { data } = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+                name: `JSR ${tagName}`,
+                body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
+                draft: false,
+                prerelease: false
+              });
+              
+              // Set the version as an output for other jobs to use
+              core.setOutput('version', version);
+              
+              return data.id;
+            } catch (error) {
+              console.error(`Error creating release: ${error}`);
+              throw error;
+            }
 
   build-tauri:
     needs: create-release
