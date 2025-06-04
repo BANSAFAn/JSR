@@ -197,8 +197,8 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first with --save option
-            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Install globby package version 11.0.4 which supports CommonJS require
+            await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
             // Use require instead of import
             const globby = require('globby');
             
@@ -235,8 +235,8 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first with --save option
-            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Install globby package version 11.0.4 which supports CommonJS require
+            await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
             // Use require instead of import
             const globby = require('globby');
             
@@ -270,8 +270,8 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first with --save option
-            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Install globby package version 11.0.4 which supports CommonJS require
+            await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
             // Use require instead of import
             const globby = require('globby');
             
