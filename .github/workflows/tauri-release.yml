@@ -197,9 +197,10 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first
-            await exec.getExecOutput('npm', ['install', 'globby']);
-            const { globby } = await import('globby');
+            // Install globby package first with --save option
+            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Use require instead of import
+            const globby = require('globby');
             
             const releaseId = process.env.RELEASE_ID;
             const version = process.env.VERSION;
@@ -234,9 +235,10 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first
-            await exec.getExecOutput('npm', ['install', 'globby']);
-            const { globby } = await import('globby');
+            // Install globby package first with --save option
+            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Use require instead of import
+            const globby = require('globby');
             
             const releaseId = process.env.RELEASE_ID;
             const version = process.env.VERSION;
@@ -268,9 +270,10 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            // Install globby package first
-            await exec.getExecOutput('npm', ['install', 'globby']);
-            const { globby } = await import('globby');
+            // Install globby package first with --save option
+            await exec.getExecOutput('npm', ['install', '--save', 'globby']);
+            // Use require instead of import
+            const globby = require('globby');
             
             const releaseId = process.env.RELEASE_ID;
             const version = process.env.VERSION;
