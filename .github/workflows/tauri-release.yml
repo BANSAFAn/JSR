@@ -1,5 +1,7 @@
+# Workflow for building and releasing Tauri app
 name: Tauri Release
 
+# Trigger on pushes to main branch that modify Tauri app files or this workflow
 on:
   push:
     branches: [ main ]
@@ -7,22 +9,27 @@ on:
       - 'JSR-Tauri/jsr-tauri-app/**'
       - '.github/workflows/tauri-release.yml'
 
-# Add explicit permissions for the workflow
+# Required permissions for the workflow
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: write    # Needed for creating releases and uploading assets
+  pull-requests: write  # Needed for commenting on PRs
+  issues: write      # Needed for issue management
 
 jobs:
+  # Job to create a GitHub release
   create-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     outputs:
       release_id: ${{ steps.create-release.outputs.result }}
       version: ${{ steps.app-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # Extract app version from tauri.conf.json
       - name: Get app version
         id: app-version
         run: |
@@ -30,27 +37,75 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "App version: $VERSION"
 
-      - name: Get commit messages
+      # Get commit messages since last tag for release notes
+      - name: Get commit messages for release notes
         id: get-commits
         run: |
+          # Find the previous tag or use the first commit if no tags exist
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          # Generate commit log from previous tag or from first commit
           if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, using all commits"
             COMMIT_LOG=$(git log --pretty=format:"%s" $(git rev-list --max-parents=0 HEAD)..HEAD)
           else
+            echo "Found previous tag: $PREVIOUS_TAG"
             COMMIT_LOG=$(git log --pretty=format:"%s" $PREVIOUS_TAG..HEAD)
           fi
+          
+          # Save commit log to environment variable for use in release notes
           echo "COMMIT_LOG<<EOF" >> $GITHUB_ENV
           echo "$COMMIT_LOG" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+          
+          # Print summary of commits found
+          COMMIT_COUNT=$(echo "$COMMIT_LOG" | wc -l)
+          echo "Found $COMMIT_COUNT commits for release notes"
 
       - name: Create release
         id: create-release
         uses: actions/github-script@v7
         with:
           script: |
+            /**
+             * Increment patch version of semver string
+             * @param {string} version - Semver version string (e.g. '1.0.0')
+             * @returns {string} Incremented version
+             */
+            function incrementPatchVersion(version) {
+              const versionParts = version.split('.');
+              let patch = parseInt(versionParts[2] || '0');
+              patch++;
+              return `${versionParts[0]}.${versionParts[1]}.${patch}`;
+            }
+            
+            /**
+             * Create a GitHub release
+             * @param {string} tagName - Tag name for the release
+             * @param {string} releaseName - Name of the release
+             * @returns {Promise<number>} Release ID
+             */
+            async function createGitHubRelease(tagName, releaseName) {
+              console.log(`Creating release with tag ${tagName}`);
+              
+              const { data } = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tagName,
+                name: releaseName,
+                body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
+                draft: false,
+                prerelease: false
+              });
+              
+              return data.id;
+            }
+            
             try {
               // Check if release already exists
-              const tagName = `v${{ steps.app-version.outputs.version }}`;
+              const version = '${{ steps.app-version.outputs.version }}';
+              const tagName = `v${version}`;
+              
               const { data: releases } = await github.rest.repos.listReleases({
                 owner: context.repo.owner,
                 repo: context.repo.repo
@@ -61,89 +116,58 @@ jobs:
               if (existingRelease) {
                 console.log(`Release with tag ${tagName} already exists. Creating a new tag with incremented version.`);
                 
-                // Parse version and increment it
-                let version = '${{ steps.app-version.outputs.version }}';
-                const versionParts = version.split('.');
-                let patch = parseInt(versionParts[2] || '0');
-                patch++;
-                const newVersion = `${versionParts[0]}.${versionParts[1]}.${patch}`;
+                // Increment version and create new release
+                const newVersion = incrementPatchVersion(version);
                 const newTagName = `v${newVersion}`;
-                
-                console.log(`Creating new release with tag ${newTagName}`);
-                
-                // Create new release with incremented version
-                const { data } = await github.rest.repos.createRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag_name: newTagName,
-                  name: `JSR ${newTagName}`,
-                  body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
-                  draft: false,
-                  prerelease: false
-                });
                 
                 // Set the new version as an output for other jobs to use
                 core.exportVariable('APP_VERSION', newVersion);
-                return data.id;
+                
+                return await createGitHubRelease(newTagName, `JSR ${newTagName}`);
               }
               
               // Create new release if it doesn't exist
-              const { data } = await github.rest.repos.createRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag_name: tagName,
-                name: `JSR ${tagName}`,
-                body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
-                draft: false,
-                prerelease: false
-              });
-              return data.id;
+              return await createGitHubRelease(tagName, `JSR ${tagName}`);
+              
             } catch (error) {
               console.error('Error creating release:', error);
               
               // If we can't create a release, try to create one with incremented version
               try {
-                let version = '${{ steps.app-version.outputs.version }}';
-                const versionParts = version.split('.');
-                let patch = parseInt(versionParts[2] || '0');
-                patch++;
-                const newVersion = `${versionParts[0]}.${versionParts[1]}.${patch}`;
+                const version = '${{ steps.app-version.outputs.version }}';
+                const newVersion = incrementPatchVersion(version);
                 const newTagName = `v${newVersion}`;
                 
                 console.log(`Trying with incremented version: ${newTagName}`);
                 
-                const { data } = await github.rest.repos.createRelease({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  tag_name: newTagName,
-                  name: `JSR ${newTagName}`,
-                  body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
-                  draft: false,
-                  prerelease: false
-                });
-                
                 // Set the new version as an output for other jobs to use
                 core.exportVariable('APP_VERSION', newVersion);
-                return data.id;
+                
+                return await createGitHubRelease(newTagName, `JSR ${newTagName}`);
               } catch (fallbackError) {
                 console.error('Fallback error:', fallbackError);
                 throw error;
               }
             }
-            return data.id
 
+  # Job to build Tauri app for multiple platforms
   build-tauri:
+    name: Build Tauri App (${{ matrix.platform }})
     needs: create-release
     strategy:
+      # Continue with other platforms if one fails
       fail-fast: false
       matrix:
         platform: [windows-latest, macos-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Get version to use
+      # Determine which version to use (dynamic or from tauri.conf.json)
+      - name: Determine app version
         id: get-version
         shell: bash
         run: |
@@ -155,29 +179,33 @@ jobs:
             echo "version=${{ needs.create-release.outputs.version }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup Node.js
+      # Setup Node.js environment
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          # Disable cache to avoid path resolution issues
           cache: 'npm'
           cache-dependency-path: './JSR-Tauri/jsr-tauri-app/src/package-lock.json'
         continue-on-error: true
 
-      - name: Install Rust stable
+      # Setup Rust environment
+      - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install dependencies (ubuntu only)
+      # Install Linux-specific dependencies
+      - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
 
+      # Install frontend dependencies
       - name: Install frontend dependencies
         run: npm ci
         working-directory: ./JSR-Tauri/jsr-tauri-app/src
 
-      - name: Build the app
+      # Build and release the Tauri application
+      - name: Build and release Tauri application
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.jsr_token }}
@@ -187,113 +215,92 @@ jobs:
           tagName: v${{ steps.get-version.outputs.version }}
           releaseName: 'JSR v${{ steps.get-version.outputs.version }}'
 
-      - name: Upload Windows artifacts manually if needed
-        if: matrix.platform == 'windows-latest' && failure()
+      # Fallback artifact upload if tauri-action fails
+      - name: Upload artifacts manually if needed
+        if: failure()
         uses: actions/github-script@v7
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           VERSION: ${{ steps.get-version.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
         with:
           script: |
+            /**
+             * Manual artifact upload script that runs if the tauri-action fails
+             * This ensures artifacts are still uploaded to the release even if the main action fails
+             */
+            
             const fs = require('fs');
             const path = require('path');
+            
             // Install globby package version 11.0.4 which supports CommonJS require
+            console.log('Installing globby package...');
             await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
-            // Use require instead of import
             const globby = require('globby');
             
+            // Get environment variables
             const releaseId = process.env.RELEASE_ID;
             const version = process.env.VERSION;
+            const platform = process.env.PLATFORM;
             
-            const exeFiles = await globby([
-              './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/nsis/*.exe',
-              './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/msi/*.msi'
-            ]);
+            console.log(`Manual upload for platform: ${platform}, version: ${version}, release ID: ${releaseId}`);
             
-            for (const file of exeFiles) {
-              const fileName = path.basename(file);
-              console.log(`Uploading ${fileName}...`);
-              
-              const fileData = fs.readFileSync(file);
-              
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name: fileName,
-                data: fileData
-              });
+            // Define patterns based on platform
+            let patterns = [];
+            if (platform === 'windows-latest') {
+              patterns = [
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/nsis/*.exe',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/msi/*.msi'
+              ];
+              console.log('Looking for Windows artifacts...');
+            } else if (platform === 'macos-latest') {
+              patterns = [
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/dmg/*.dmg'
+              ];
+              console.log('Looking for macOS artifacts...');
+            } else if (platform === 'ubuntu-latest') {
+              patterns = [
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/deb/*.deb',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/appimage/*.AppImage'
+              ];
+              console.log('Looking for Linux artifacts...');
             }
-
-      - name: Upload macOS artifacts manually if needed
-        if: matrix.platform == 'macos-latest' && failure()
-        uses: actions/github-script@v7
-        env:
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-          VERSION: ${{ steps.get-version.outputs.version }}
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            // Install globby package version 11.0.4 which supports CommonJS require
-            await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
-            // Use require instead of import
-            const globby = require('globby');
             
-            const releaseId = process.env.RELEASE_ID;
-            const version = process.env.VERSION;
+            // Find and upload files
+            console.log('Searching for build artifacts...');
+            const files = await globby(patterns);
+            console.log(`Found ${files.length} files to upload`);
             
-            const dmgFiles = await globby(['./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/dmg/*.dmg']);
+            // Upload each file to the GitHub release
+            let successCount = 0;
+            let errorCount = 0;
             
-            for (const file of dmgFiles) {
+            for (const file of files) {
               const fileName = path.basename(file);
               console.log(`Uploading ${fileName}...`);
               
-              const fileData = fs.readFileSync(file);
-              
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name: fileName,
-                data: fileData
-              });
+              try {
+                const fileData = fs.readFileSync(file);
+                
+                await github.rest.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: releaseId,
+                  name: fileName,
+                  data: fileData
+                });
+                
+                console.log(`✅ Successfully uploaded ${fileName}`);
+                successCount++;
+              } catch (error) {
+                console.error(`❌ Error uploading ${fileName}:`, error);
+                errorCount++;
+              }
             }
-
-      - name: Upload Linux artifacts manually if needed
-        if: matrix.platform == 'ubuntu-latest' && failure()
-        uses: actions/github-script@v7
-        env:
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-          VERSION: ${{ steps.get-version.outputs.version }}
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            // Install globby package version 11.0.4 which supports CommonJS require
-            await exec.getExecOutput('npm', ['install', '--save', 'globby@11.0.4']);
-            // Use require instead of import
-            const globby = require('globby');
             
-            const releaseId = process.env.RELEASE_ID;
-            const version = process.env.VERSION;
-            
-            const linuxFiles = await globby([
-              './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/deb/*.deb',
-              './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/appimage/*.AppImage'
-            ]);
-            
-            for (const file of linuxFiles) {
-              const fileName = path.basename(file);
-              console.log(`Uploading ${fileName}...`);
-              
-              const fileData = fs.readFileSync(file);
-              
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name: fileName,
-                data: fileData
-              });
+            // Summary
+            if (files.length === 0) {
+              console.log('⚠️ No artifacts found to upload.');
+            } else {
+              console.log(`📊 Upload summary: ${successCount} successful, ${errorCount} failed`);
             }
