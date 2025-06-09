@@ -8,7 +8,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Настройки
   getSettings: () => ipcRenderer.invoke('get-settings'),
-  saveSettings: (settings) => ipcRenderer.send('save-settings', settings),
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  
+  // Управление окном
+  minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+  closeWindow: () => ipcRenderer.invoke('window-close'),
   
   // Установщик
   isFirstRun: () => ipcRenderer.invoke('is-first-run'),

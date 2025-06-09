@@ -329,20 +329,27 @@ function setupEventListeners() {
     const closeBtn = document.getElementById('close-btn');
     
     if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', () => {
-        ipcRenderer.send('minimize-window');
+      minimizeBtn.addEventListener('click', async () => {
+        await window.electronAPI.minimizeWindow();
       });
     }
     
     if (maximizeBtn) {
-      maximizeBtn.addEventListener('click', () => {
-        ipcRenderer.send('maximize-window');
+      maximizeBtn.addEventListener('click', async () => {
+        const result = await window.electronAPI.maximizeWindow();
+        if (result && result.maximized) {
+          maximizeBtn.innerHTML = '<i class="fas fa-window-restore"></i>';
+          maximizeBtn.setAttribute('title', 'Восстановить');
+        } else {
+          maximizeBtn.innerHTML = '<i class="fas fa-window-maximize"></i>';
+          maximizeBtn.setAttribute('title', 'Развернуть');
+        }
       });
     }
     
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        ipcRenderer.send('close-window');
+      closeBtn.addEventListener('click', async () => {
+        await window.electronAPI.closeWindow();
       });
     }
     
@@ -391,7 +398,8 @@ function setupEventListeners() {
       searchJavaBtn.addEventListener('click', async () => {
         console.log('Loading Java installations...');
         try {
-          const javaInstallations = await ipcRenderer.invoke('get-java-installations');
+          const javaResult = await window.electronAPI.getJavaInfo();
+          const javaInstallations = javaResult && javaResult.installations ? javaResult.installations : [];
           console.log('Java installations loaded:', javaInstallations);
           renderJavaInstallations(javaInstallations);
         } catch (error) {
@@ -562,7 +570,10 @@ async function analyzeJavaRequirements() {
     }
     
     // Получаем установленные версии Java
-    const javaInstallations = await ipcRenderer.invoke('get-java-installations');
+    const javaResult = await window.electronAPI.getJavaInfo();
+    const javaInstallations = javaResult && javaResult.installations ? javaResult.installations : [];
+    
+    console.log('Found Java installations:', javaInstallations);
     
     // Определяем требования Java для выбранной версии Minecraft
     const requirements = getMinecraftJavaRequirements(mcVersion);
@@ -1064,18 +1075,39 @@ function applyTheme(theme) {
       return;
     }
     
-    // Добавляем анимацию перехода
-    document.body.classList.add('theme-transition');
-    
-    // Устанавливаем новую тему
-    const themePath = `./styles/themes/${theme}.css`;
-    console.log('Setting theme path:', themePath);
-    themeLink.setAttribute('href', themePath);
-    
-    // Обновляем класс body
-    const oldThemeClass = document.body.className;
-    document.body.className = `theme-${theme} theme-transition`;
-    console.log('Updated body class from', oldThemeClass, 'to', document.body.className);
+    // Проверяем, является ли тема системной
+    if (theme === 'system') {
+      // Определяем предпочтение системы (светлая или темная тема)
+      const prefersDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      console.log('System theme detected, prefers dark mode:', prefersDarkMode);
+      
+      // Устанавливаем соответствующую тему на основе системных предпочтений
+      const actualTheme = prefersDarkMode ? 'dark' : 'light';
+      
+      // Устанавливаем путь к файлу темы
+      const themePath = `./styles/themes/${theme}.css`;
+      console.log('Setting theme path:', themePath);
+      themeLink.setAttribute('href', themePath);
+      
+      // Обновляем класс body
+      const oldThemeClass = document.body.className;
+      document.body.className = `theme-${theme} theme-transition`;
+      console.log('Updated body class from', oldThemeClass, 'to', document.body.className);
+    } else {
+      // Для обычных тем (не системных)
+      // Добавляем анимацию перехода
+      document.body.classList.add('theme-transition');
+      
+      // Устанавливаем новую тему
+      const themePath = `./styles/themes/${theme}.css`;
+      console.log('Setting theme path:', themePath);
+      themeLink.setAttribute('href', themePath);
+      
+      // Обновляем класс body
+      const oldThemeClass = document.body.className;
+      document.body.className = `theme-${theme} theme-transition`;
+      console.log('Updated body class from', oldThemeClass, 'to', document.body.className);
+    }
     
     // Удаляем класс анимации после завершения перехода
     setTimeout(() => {
@@ -1093,6 +1125,32 @@ function applyTheme(theme) {
         btn.classList.remove('active');
       }
     });
+    
+    // Добавляем слушатель событий для системной темы, если выбрана системная тема
+    if (theme === 'system') {
+      // Удаляем предыдущий слушатель, если он был
+      if (window.systemThemeListener) {
+        window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', window.systemThemeListener);
+      }
+      
+      // Создаем новый слушатель
+      window.systemThemeListener = (e) => {
+        console.log('System theme preference changed, dark mode:', e.matches);
+        // Обновляем тему без изменения настроек
+        const actualTheme = e.matches ? 'dark' : 'light';
+        const themePath = `./styles/themes/${actualTheme}.css`;
+        themeLink.setAttribute('href', themePath);
+      };
+      
+      // Добавляем слушатель
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', window.systemThemeListener);
+    } else {
+      // Удаляем слушатель, если выбрана не системная тема
+      if (window.systemThemeListener) {
+        window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', window.systemThemeListener);
+        window.systemThemeListener = null;
+      }
+    }
     
     // Сохраняем тему в локальное хранилище для дополнительной надежности
     localStorage.setItem('theme', theme);

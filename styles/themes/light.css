@@ -20,7 +20,19 @@ header, footer {
   background-color: var(--card-background);
 }
 
+.info-card, .java-recommendation, .download-options, .installation-guide {
+  background-color: #f0f0f0;
+}
+
+.download-card {
+  background-color: #f8f8f8;
+}
+
 .theme-btn[data-theme="light"] {
   background-color: #f8f8f8;
   box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.loading-overlay {
+  background-color: rgba(245, 245, 245, 0.8);
 }
