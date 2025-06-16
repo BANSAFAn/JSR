@@ -52,16 +52,25 @@ jobs:
 
       # Install frontend dependencies
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          # Verify directory exists
+          if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
+            echo "Error: Frontend directory not found"
+            find ./JSR-Tauri -name "package.json" -type f
+            exit 1
+          fi
+          npm ci
         working-directory: ./JSR-Tauri/jsr-tauri-app/src
 
       # Build the Tauri application
       - name: Build Tauri application
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.jsr_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './JSR-Tauri/jsr-tauri-app/src'
+          includeDebug: false
+          includeRelease: true
 
       # Upload build artifacts
       - name: Upload build artifacts
@@ -71,7 +80,14 @@ jobs:
           path: |
             ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/msi/*.msi
             ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/nsis/*.exe
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/*.exe
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.exe
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.msi
             ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/dmg/*.dmg
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/macos/*.app
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.dmg
             ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/deb/*.deb
             ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/appimage/*.AppImage
-          if-no-files-found: ignore
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.deb
+            ./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.AppImage
+          if-no-files-found: warn

@@ -36,6 +36,12 @@ jobs:
           VERSION=$(cat ./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json | grep '"version"' | head -n 1 | awk -F '"' '{print $4}')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "App version: $VERSION"
+          # Verify file exists and path is correct
+          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json" ]; then
+            echo "Error: tauri.conf.json not found at expected path"
+            find ./JSR-Tauri -name "tauri.conf.json" -type f
+            exit 1
+          fi
 
       # Get commit messages since last tag for release notes
       - name: Get commit messages for release notes
@@ -201,25 +207,36 @@ jobs:
 
       # Install frontend dependencies
       - name: Install frontend dependencies
-        run: npm ci
+        run: |
+          # Verify directory exists
+          if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
+            echo "Error: Frontend directory not found"
+            find ./JSR-Tauri -name "package.json" -type f
+            exit 1
+          fi
+          npm ci
         working-directory: ./JSR-Tauri/jsr-tauri-app/src
 
       # Build and release the Tauri application
       - name: Build and release Tauri application
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.jsr_token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './JSR-Tauri/jsr-tauri-app/src'
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: v${{ steps.get-version.outputs.version }}
           releaseName: 'JSR v${{ steps.get-version.outputs.version }}'
+          includeDebug: false
+          includeRelease: true
+          includeUpdaterJson: true
 
       # Fallback artifact upload if tauri-action fails
       - name: Upload artifacts manually if needed
         if: failure()
         uses: actions/github-script@v7
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           VERSION: ${{ steps.get-version.outputs.version }}
           PLATFORM: ${{ matrix.platform }}
@@ -250,52 +267,114 @@ jobs:
             if (platform === 'windows-latest') {
               patterns = [
                 './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/nsis/*.exe',
-                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/msi/*.msi'
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/msi/*.msi',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/*.exe',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.exe',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.msi'
               ];
               console.log('Looking for Windows artifacts...');
             } else if (platform === 'macos-latest') {
               patterns = [
-                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/dmg/*.dmg'
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/dmg/*.dmg',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/macos/*.app',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.dmg'
               ];
               console.log('Looking for macOS artifacts...');
             } else if (platform === 'ubuntu-latest') {
               patterns = [
                 './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/deb/*.deb',
-                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/appimage/*.AppImage'
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/appimage/*.AppImage',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.deb',
+                './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/bundle/**/*.AppImage'
               ];
               console.log('Looking for Linux artifacts...');
             }
             
             // Find and upload files
             console.log('Searching for build artifacts...');
-            const files = await globby(patterns);
-            console.log(`Found ${files.length} files to upload`);
+            try {
+              // Check if directories exist first
+              const baseDir = './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release';
+              if (!fs.existsSync(baseDir)) {
+                console.log(`Base directory ${baseDir} does not exist. Checking parent directories...`);
+                // List available directories to help debug
+                const dirs = ['./JSR-Tauri', './JSR-Tauri/jsr-tauri-app', './JSR-Tauri/jsr-tauri-app/src'];
+                for (const dir of dirs) {
+                  console.log(`Checking if ${dir} exists: ${fs.existsSync(dir)}`);
+                  if (fs.existsSync(dir)) {
+                    console.log(`Contents of ${dir}:`);
+                    console.log(fs.readdirSync(dir));
+                  }
+                }
+              } else {
+                console.log(`Base directory ${baseDir} exists. Contents:`);
+                console.log(fs.readdirSync(baseDir));
+                
+                // Check bundle directory
+                const bundleDir = `${baseDir}/bundle`;
+                if (fs.existsSync(bundleDir)) {
+                  console.log(`Bundle directory ${bundleDir} exists. Contents:`);
+                  console.log(fs.readdirSync(bundleDir));
+                }
+              }
+              
+              const files = await globby(patterns);
+              console.log(`Found ${files.length} files to upload`);
+              
+              if (files.length === 0) {
+                // Try to find any build artifacts if the specific patterns didn't match
+                console.log('No files found with specific patterns. Trying broader search...');
+                const allFiles = await globby(['./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/**/*.{exe,msi,dmg,deb,AppImage}']);
+                console.log(`Broader search found ${allFiles.length} files:`);
+                allFiles.forEach(file => console.log(` - ${file}`));
+              }
             
             // Upload each file to the GitHub release
             let successCount = 0;
             let errorCount = 0;
             
-            for (const file of files) {
-              const fileName = path.basename(file);
-              console.log(`Uploading ${fileName}...`);
-              
-              try {
-                const fileData = fs.readFileSync(file);
+            if (files && files.length > 0) {
+              for (const file of files) {
+                const fileName = path.basename(file);
+                console.log(`Uploading ${fileName}...`);
                 
-                await github.rest.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  release_id: releaseId,
-                  name: fileName,
-                  data: fileData
-                });
-                
-                console.log(`✅ Successfully uploaded ${fileName}`);
-                successCount++;
-              } catch (error) {
-                console.error(`❌ Error uploading ${fileName}:`, error);
-                errorCount++;
+                try {
+                  if (!fs.existsSync(file)) {
+                    console.error(`❌ File does not exist: ${file}`);
+                    errorCount++;
+                    continue;
+                  }
+                  
+                  const fileData = fs.readFileSync(file);
+                  
+                  await github.rest.repos.uploadReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    release_id: releaseId,
+                    name: fileName,
+                    data: fileData
+                  });
+                  
+                  console.log(`✅ Successfully uploaded ${fileName}`);
+                  successCount++;
+                } catch (error) {
+                  console.error(`❌ Error uploading ${fileName}:`, error);
+                  errorCount++;
+                }
               }
+            } else {
+              console.log('No files to upload. Checking for any build artifacts...');
+              try {
+                // Execute a shell command to find any build artifacts
+                const { stdout } = await exec.getExecOutput('find', ['./JSR-Tauri', '-type', 'f', '-name', '*.exe', '-o', '-name', '*.msi', '-o', '-name', '*.dmg', '-o', '-name', '*.deb', '-o', '-name', '*.AppImage']);
+                console.log('Find command results:');
+                console.log(stdout);
+              } catch (error) {
+                console.error('Error executing find command:', error);
+              }
+            }
+            } catch (error) {
+              console.error('Error during artifact search:', error);
             }
             
             // Summary
