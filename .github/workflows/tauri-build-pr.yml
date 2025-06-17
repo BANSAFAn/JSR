@@ -8,6 +8,14 @@ on:
     paths:
       - 'JSR-Tauri/jsr-tauri-app/**'
       - '.github/workflows/tauri-build-pr.yml'
+  # Добавляем возможность ручного запуска
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Включить отладочный режим'
+        required: false
+        default: false
+        type: boolean
 
 # Required permissions for the workflow
 permissions:
@@ -30,6 +38,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Включаем отладочный режим, если запрошен
+      - name: Enable debug mode if requested
+        if: github.event.inputs.debug_enabled == 'true'
+        shell: bash
+        run: |
+          set -x
+          echo "Debug mode enabled"
+          # Выводим информацию о рабочей директории и файлах
+          pwd
+          ls -la
+          ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+          ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
+      
       # Setup Node.js environment
       - name: Setup Node.js 18
         uses: actions/setup-node@v4
@@ -62,15 +83,52 @@ jobs:
           npm ci
         working-directory: ./JSR-Tauri/jsr-tauri-app/src
 
+      # Проверка структуры проекта перед сборкой
+      - name: Check project structure
+        run: |
+          echo "Checking project structure before build..."
+          # Проверяем наличие директорий
+          if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
+            echo "Error: Project directory not found"
+            ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+            ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
+            exit 1
+          fi
+          
+          # Проверяем наличие файла конфигурации Tauri
+          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json" ]; then
+            echo "Warning: tauri.conf.json not found at expected path"
+            FOUND_PATHS=$(find ./JSR-Tauri -name "tauri.conf.json" -type f)
+            if [ -n "$FOUND_PATHS" ]; then
+              echo "Found tauri.conf.json at:"
+              echo "$FOUND_PATHS"
+            fi
+          else
+            echo "Found tauri.conf.json at expected path"
+          fi
+          
+          # Проверяем наличие package.json
+          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/package.json" ]; then
+            echo "Warning: package.json not found at expected path"
+            FOUND_PATHS=$(find ./JSR-Tauri -name "package.json" -type f)
+            if [ -n "$FOUND_PATHS" ]; then
+              echo "Found package.json at:"
+              echo "$FOUND_PATHS"
+            fi
+          else
+            echo "Found package.json at expected path"
+          fi
+      
       # Build the Tauri application
       - name: Build Tauri application
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.4.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './JSR-Tauri/jsr-tauri-app/src'
           includeDebug: false
           includeRelease: true
+          tauriScript: 'npm run tauri'
 
       # Upload build artifacts
       - name: Upload build artifacts

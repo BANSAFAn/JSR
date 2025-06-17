@@ -8,6 +8,14 @@ on:
     paths:
       - 'JSR-Tauri/jsr-tauri-app/**'
       - '.github/workflows/tauri-release.yml'
+  # Добавляем возможность ручного запуска
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Включить отладочный режим'
+        required: false
+        default: false
+        type: boolean
 
 # Required permissions for the workflow
 permissions:
@@ -33,15 +41,44 @@ jobs:
       - name: Get app version
         id: app-version
         run: |
-          VERSION=$(cat ./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json | grep '"version"' | head -n 1 | awk -F '"' '{print $4}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "App version: $VERSION"
-          # Verify file exists and path is correct
-          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json" ]; then
-            echo "Error: tauri.conf.json not found at expected path"
-            find ./JSR-Tauri -name "tauri.conf.json" -type f
+          # Проверяем структуру директорий
+          echo "Checking directory structure..."
+          ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+          ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
+          ls -la ./JSR-Tauri/jsr-tauri-app/src || echo "src directory not found"
+          ls -la ./JSR-Tauri/jsr-tauri-app/src/src-tauri || echo "src-tauri directory not found"
+          
+          # Ищем файл tauri.conf.json
+          echo "Searching for tauri.conf.json..."
+          TAURI_CONF_PATH="./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json"
+          
+          if [ ! -f "$TAURI_CONF_PATH" ]; then
+            echo "Error: tauri.conf.json not found at expected path: $TAURI_CONF_PATH"
+            echo "Searching for tauri.conf.json in the project..."
+            FOUND_PATHS=$(find ./JSR-Tauri -name "tauri.conf.json" -type f)
+            
+            if [ -z "$FOUND_PATHS" ]; then
+              echo "No tauri.conf.json found in the project"
+              exit 1
+            else
+              echo "Found tauri.conf.json at:"
+              echo "$FOUND_PATHS"
+              # Используем первый найденный файл
+              TAURI_CONF_PATH=$(echo "$FOUND_PATHS" | head -n 1)
+              echo "Using: $TAURI_CONF_PATH"
+            fi
+          fi
+          
+          # Извлекаем версию
+          VERSION=$(cat "$TAURI_CONF_PATH" | grep '"version"' | head -n 1 | awk -F '"' '{print $4}')
+          if [ -z "$VERSION" ]; then
+            echo "Error: Could not extract version from $TAURI_CONF_PATH"
+            cat "$TAURI_CONF_PATH"
             exit 1
           fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "App version: $VERSION"
 
       # Get commit messages since last tag for release notes
       - name: Get commit messages for release notes
@@ -177,6 +214,17 @@ jobs:
         id: get-version
         shell: bash
         run: |
+          # Включаем отладочный режим, если запрошен
+          if [[ "${{ github.event.inputs.debug_enabled }}" == "true" ]]; then
+            set -x
+            echo "Debug mode enabled"
+            # Выводим информацию о рабочей директории и файлах
+            pwd
+            ls -la
+            ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+            ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
+          fi
+          
           if [[ -n "$APP_VERSION" ]]; then
             echo "Using dynamically generated version: $APP_VERSION"
             echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
@@ -216,10 +264,46 @@ jobs:
           fi
           npm ci
         working-directory: ./JSR-Tauri/jsr-tauri-app/src
+        
+      # Проверка структуры проекта перед сборкой
+      - name: Check project structure
+        run: |
+          echo "Checking project structure before build..."
+          # Проверяем наличие директорий
+          if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
+            echo "Error: Project directory not found"
+            ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+            ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
+            exit 1
+          fi
+          
+          # Проверяем наличие файла конфигурации Tauri
+          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json" ]; then
+            echo "Warning: tauri.conf.json not found at expected path"
+            FOUND_PATHS=$(find ./JSR-Tauri -name "tauri.conf.json" -type f)
+            if [ -n "$FOUND_PATHS" ]; then
+              echo "Found tauri.conf.json at:"
+              echo "$FOUND_PATHS"
+            fi
+          else
+            echo "Found tauri.conf.json at expected path"
+          fi
+          
+          # Проверяем наличие package.json
+          if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/package.json" ]; then
+            echo "Warning: package.json not found at expected path"
+            FOUND_PATHS=$(find ./JSR-Tauri -name "package.json" -type f)
+            if [ -n "$FOUND_PATHS" ]; then
+              echo "Found package.json at:"
+              echo "$FOUND_PATHS"
+            fi
+          else
+            echo "Found package.json at expected path"
+          fi
 
       # Build and release the Tauri application
       - name: Build and release Tauri application
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v0.4.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -230,6 +314,7 @@ jobs:
           includeDebug: false
           includeRelease: true
           includeUpdaterJson: true
+          tauriScript: 'npm run tauri'
 
       # Fallback artifact upload if tauri-action fails
       - name: Upload artifacts manually if needed
