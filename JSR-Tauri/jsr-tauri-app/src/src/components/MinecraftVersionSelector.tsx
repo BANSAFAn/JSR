@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface MinecraftVersionSelectorProps {
   onVersionSelect: (version: string, customVersion?: string) => void;
 }
 
-const MinecraftVersionSelector: React.FC<MinecraftVersionSelectorProps> = ({ onVersionSelect }) => {
+const MinecraftVersionSelector: React.FC<MinecraftVersionSelectorProps> = memo(({ onVersionSelect }) => {
   const { t } = useTranslation();
   const [selectedVersion, setSelectedVersion] = useState('latest');
   const [customVersion, setCustomVersion] = useState('');
 
-  const handleVersionSelect = (version: string) => {
+  // Memoize the version selection handler
+  const handleVersionSelect = useCallback((version: string) => {
     setSelectedVersion(version);
-  };
+  }, []);
 
-  const handleAnalyze = () => {
+  // Memoize the analyze button handler
+  const handleAnalyze = useCallback(() => {
     if (selectedVersion === 'custom' && customVersion) {
       onVersionSelect(selectedVersion, customVersion);
     } else {
       onVersionSelect(selectedVersion);
     }
-  };
+  }, [selectedVersion, customVersion, onVersionSelect]);
 
   return (
     <section className="minecraft-version-section">
@@ -63,7 +65,7 @@ const MinecraftVersionSelector: React.FC<MinecraftVersionSelectorProps> = ({ onV
           type="text" 
           placeholder={t('enterCustomVersion')}
           value={customVersion}
-          onChange={(e) => setCustomVersion(e.target.value)}
+          onChange={useCallback((e) => setCustomVersion(e.target.value), [])}
         />
       </div>
       
@@ -72,6 +74,6 @@ const MinecraftVersionSelector: React.FC<MinecraftVersionSelectorProps> = ({ onV
       </button>
     </section>
   );
-};
+});
 
 export default MinecraftVersionSelector;

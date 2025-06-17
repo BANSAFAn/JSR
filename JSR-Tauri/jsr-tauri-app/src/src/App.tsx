@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import Header from "./components/Header";
@@ -54,8 +54,8 @@ function App() {
     getSystemInfo();
   }, []);
 
-  // Toggle theme
-  const toggleTheme = async () => {
+  // Toggle theme - memoized with useCallback to prevent unnecessary re-renders
+  const toggleTheme = useCallback(async () => {
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
     document.body.className = `theme-${newTheme}`;
@@ -71,10 +71,10 @@ function App() {
     } catch (error) {
       console.error("Error saving settings:", error);
     }
-  };
+  }, [theme, i18n.language]);
 
-  // Handle section change
-  const handleSectionChange = (section: string) => {
+  // Handle section change - memoized with useCallback
+  const handleSectionChange = useCallback((section: string) => {
     setActiveSection(section);
     
     if (section === "search-java") {
@@ -102,16 +102,16 @@ function App() {
         setIsLoadingJava(false);
       }, 1500);
     }
-  };
+  }, []);
 
-  // Handle version selection
-  const handleVersionSelect = (version: string, customVer?: string) => {
+  // Handle version selection - memoized with useCallback
+  const handleVersionSelect = useCallback((version: string, customVer?: string) => {
     setSelectedVersion(version);
     if (customVer) {
       setCustomVersion(customVer);
     }
     setShowJavaRecommendation(true);
-  };
+  }, []);
 
   // Apply theme class to body
   useEffect(() => {

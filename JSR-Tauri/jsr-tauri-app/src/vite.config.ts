@@ -29,4 +29,32 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  // Optimization settings for production build
+  build: {
+    // Target modern browsers for smaller bundle size
+    target: 'es2020',
+    // Minify output
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // Remove console logs in production
+        drop_console: true,
+        // Remove debugger statements in production
+        drop_debugger: true,
+      },
+    },
+    // Reduce chunk size
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          i18n: ['i18next', 'react-i18next'],
+        },
+      },
+    },
+    // Enable source maps only in development
+    sourcemap: process.env.NODE_ENV !== 'production',
+    // Reduce asset inlining size limit
+    assetsInlineLimit: 4096,
+  },
 }));
