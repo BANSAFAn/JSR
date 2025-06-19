@@ -228,13 +228,15 @@ jobs:
         shell: bash
         run: |
           # Verify directory exists
-          if [ ! -d "JSR-Tauri/jsr-tauri-app/src" ]; then
+          if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
             echo "Error: Frontend directory not found"
-            find JSR-Tauri -name "package.json" -type f
+            ls -la
+            ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
+            ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
             exit 1
           fi
-          npm ci
-        working-directory: JSR-Tauri/jsr-tauri-app/src
+          cd ./JSR-Tauri/jsr-tauri-app/src
+          npm install
         
       # Проверка структуры проекта перед сборкой
       - name: Check project structure
@@ -244,6 +246,7 @@ jobs:
           # Проверяем наличие директорий
           if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
             echo "Error: Project directory not found"
+            ls -la
             ls -la ./JSR-Tauri || echo "JSR-Tauri directory not found"
             ls -la ./JSR-Tauri/jsr-tauri-app || echo "jsr-tauri-app directory not found"
             exit 1
@@ -252,10 +255,13 @@ jobs:
           # Проверяем наличие файла конфигурации Tauri
           if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/src-tauri/tauri.conf.json" ]; then
             echo "Warning: tauri.conf.json not found at expected path"
-            FOUND_PATHS=$(find ./JSR-Tauri -name "tauri.conf.json" -type f)
-            if [ -n "$FOUND_PATHS" ]; then
-              echo "Found tauri.conf.json at:"
-              echo "$FOUND_PATHS"
+            echo "Listing src-tauri directory:"
+            ls -la ./JSR-Tauri/jsr-tauri-app/src/src-tauri || echo "src-tauri directory not found"
+            echo "Searching for tauri.conf.json:"
+            if [ "$RUNNER_OS" == "Windows" ]; then
+              powershell -Command "Get-ChildItem -Path ./JSR-Tauri -Recurse -Filter 'tauri.conf.json' | Select-Object -ExpandProperty FullName"
+            else
+              find ./JSR-Tauri -name "tauri.conf.json" -type f
             fi
           else
             echo "Found tauri.conf.json at expected path"
@@ -264,13 +270,36 @@ jobs:
           # Проверяем наличие package.json
           if [ ! -f "./JSR-Tauri/jsr-tauri-app/src/package.json" ]; then
             echo "Warning: package.json not found at expected path"
-            FOUND_PATHS=$(find ./JSR-Tauri -name "package.json" -type f)
-            if [ -n "$FOUND_PATHS" ]; then
-              echo "Found package.json at:"
-              echo "$FOUND_PATHS"
+            echo "Searching for package.json:"
+            if [ "$RUNNER_OS" == "Windows" ]; then
+              powershell -Command "Get-ChildItem -Path ./JSR-Tauri -Recurse -Filter 'package.json' | Select-Object -ExpandProperty FullName"
+            else
+              find ./JSR-Tauri -name "package.json" -type f
             fi
           else
             echo "Found package.json at expected path"
+          fi
+
+      # Verify Tauri project structure before build
+      - name: Verify Tauri project structure
+        shell: bash
+        run: |
+          echo "Verifying Tauri project structure..."
+          cd ./JSR-Tauri/jsr-tauri-app/src
+          echo "Current directory: $(pwd)"
+          echo "Listing src-tauri directory:"
+          ls -la ./src-tauri || echo "src-tauri directory not found"
+          
+          # Проверяем наличие package.json и скрипта tauri
+          if [ -f "package.json" ]; then
+            echo "Checking for tauri script in package.json:"
+            grep -A 5 "\"scripts\"" package.json || echo "Scripts section not found"
+          fi
+          
+          # Проверяем наличие node_modules
+          if [ ! -d "node_modules" ]; then
+            echo "Warning: node_modules not found, installing dependencies"
+            npm install
           fi
 
       # Build and release the Tauri application
@@ -279,7 +308,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: 'JSR-Tauri/jsr-tauri-app/src'
+          projectPath: './JSR-Tauri/jsr-tauri-app/src'
           releaseId: ${{ needs.create-release.outputs.release_id }}
           tagName: v${{ steps.get-version.outputs.version }}
           releaseName: 'JSR v${{ steps.get-version.outputs.version }}'
@@ -348,15 +377,16 @@ jobs:
               console.log('Looking for Linux artifacts...');
             }
             
+            // Инициализируем массив files перед использованием
             let files = [];
             console.log('Searching for build artifacts...');
             try {
               // Check if directories exist first
-              const baseDir = 'JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release';
+              const baseDir = './JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release';
               if (!fs.existsSync(baseDir)) {
                 console.log(`Base directory ${baseDir} does not exist. Checking parent directories...`);
                 // List available directories to help debug
-                const dirs = ['JSR-Tauri', 'JSR-Tauri/jsr-tauri-app', 'JSR-Tauri/jsr-tauri-app/src'];
+                const dirs = ['./JSR-Tauri', './JSR-Tauri/jsr-tauri-app', './JSR-Tauri/jsr-tauri-app/src'];
                 for (const dir of dirs) {
                   console.log(`Checking if ${dir} exists: ${fs.existsSync(dir)}`);
                   if (fs.existsSync(dir)) {
@@ -376,22 +406,34 @@ jobs:
                 }
               }
               
+              // Поиск файлов с использованием globby
               files = await globby(patterns);
               console.log(`Found ${files.length} files to upload`);
               
               if (files.length === 0) {
                 // Try to find any build artifacts if the specific patterns didn't match
                 console.log('No files found with specific patterns. Trying broader search...');
-                const allFiles = await globby(['JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/**/*.{exe,msi,dmg,deb,AppImage}']);
+                const allFiles = await globby(['./JSR-Tauri/jsr-tauri-app/src/src-tauri/target/release/**/*.{exe,msi,dmg,deb,AppImage}']);
                 console.log(`Broader search found ${allFiles.length} files:`);
-                allFiles.forEach(file => console.log(` - ${file}`));
+                if (allFiles.length > 0) {
+                  allFiles.forEach(file => console.log(` - ${file}`));
+                  // Добавляем найденные файлы в основной массив
+                  files = allFiles;
+                }
               }
             
             // Upload each file to the GitHub release
             let successCount = 0;
             let errorCount = 0;
             
-            if (files && files.length > 0) {
+            // Убедимся, что files определен и является массивом
+            if (!files) {
+              files = [];
+              console.log('Files variable was undefined, initializing as empty array');
+            }
+            
+            if (files.length > 0) {
+              console.log(`Preparing to upload ${files.length} files`);
               for (const file of files) {
                 const fileName = path.basename(file);
                 console.log(`Uploading ${fileName}...`);
@@ -425,18 +467,72 @@ jobs:
               try {
                 if (platform === 'windows-latest') {
                   // Use PowerShell for robust file searching on Windows
-                  const command = `Get-ChildItem -Path 'JSR-Tauri' -Recurse -Include *.exe, *.msi, *.dmg, *.deb, *.AppImage | Select-Object -ExpandProperty FullName`;
-                  const { stdout } = await exec('powershell', ['-Command', command]);
-                  console.log('Find command results:');
-                  console.log(stdout);
+                  console.log('Using PowerShell to search for artifacts on Windows...');
+                  const command = `Get-ChildItem -Path './JSR-Tauri' -Recurse -Include '*.exe','*.msi','*.dmg','*.deb','*.AppImage' | Select-Object -ExpandProperty FullName`;
+                  await exec('powershell', ['-Command', command], {
+                    listeners: {
+                      stdout: (data) => {
+                        console.log(`PowerShell output: ${data.toString()}`);
+                        // Если найдены файлы, добавляем их в массив files
+                        const foundFiles = data.toString().trim().split('\n').filter(f => f.trim() !== '');
+                        if (foundFiles.length > 0) {
+                          console.log(`Found ${foundFiles.length} files via PowerShell`);
+                          files = foundFiles;
+                        }
+                      }
+                    }
+                  });
                 } else {
                   // Use standard find for Linux and macOS
-                  const { stdout } = await exec('find', ['JSR-Tauri', '-type', 'f', '-name', '*.exe', '-o', '-name', '*.msi', '-o', '-name', '*.dmg', '-o', '-name', '*.deb', '-o', '-name', '*.AppImage']);
-                  console.log('Find command results:');
-                  console.log(stdout);
+                  console.log('Using find command to search for artifacts on Unix...');
+                  await exec('find', ['./JSR-Tauri', '-type', 'f', '(', '-name', '*.exe', '-o', '-name', '*.msi', '-o', '-name', '*.dmg', '-o', '-name', '*.deb', '-o', '-name', '*.AppImage', ')'], {
+                    listeners: {
+                      stdout: (data) => {
+                        console.log(`Find output: ${data.toString()}`);
+                        // Если найдены файлы, добавляем их в массив files
+                        const foundFiles = data.toString().trim().split('\n').filter(f => f.trim() !== '');
+                        if (foundFiles.length > 0) {
+                          console.log(`Found ${foundFiles.length} files via find`);
+                          files = foundFiles;
+                        }
+                      }
+                    }
+                  });
+                }
+                
+                // Если после поиска нашлись файлы, пробуем их загрузить
+                if (files.length > 0) {
+                  console.log('Found files after additional search, attempting to upload...');
+                  for (const file of files) {
+                    const fileName = path.basename(file);
+                    console.log(`Uploading ${fileName} from additional search...`);
+                    
+                    try {
+                      if (!fs.existsSync(file)) {
+                        console.error(`❌ File does not exist: ${file}`);
+                        continue;
+                      }
+                      
+                      const fileData = fs.readFileSync(file);
+                      
+                      await github.rest.repos.uploadReleaseAsset({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        release_id: releaseId,
+                        name: fileName,
+                        data: fileData
+                      });
+                      
+                      console.log(`✅ Successfully uploaded ${fileName} from additional search`);
+                      successCount++;
+                    } catch (error) {
+                      console.error(`❌ Error uploading ${fileName} from additional search:`, error);
+                      errorCount++;
+                    }
+                  }
                 }
               } catch (error) {
-                console.error('Error executing find command:', error);
+                console.error('Error executing file search command:', error);
               }
             }
             } catch (error) {
