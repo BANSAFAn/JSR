@@ -121,77 +121,47 @@ jobs:
               patch++;
               return `${versionParts[0]}.${versionParts[1]}.${patch}`;
             }
-            
-            /**
-             * Create a GitHub release
-             * @param {string} tagName - Tag name for the release
-             * @param {string} releaseName - Name of the release
-             * @returns {Promise<number>} Release ID
-             */
-            async function createGitHubRelease(tagName, releaseName) {
-              console.log(`Creating release with tag ${tagName}`);
-              
-              const { data } = await github.rest.repos.createRelease({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag_name: tagName,
-                name: releaseName,
-                body: `## Что нового в этом релизе:\n${{ env.COMMIT_LOG }}`,
-                draft: false,
-                prerelease: false
-              });
-              
-              return data.id;
-            }
-            
-            try {
-              // Check if release already exists
-              const version = '${{ steps.app-version.outputs.version }}';
-              const tagName = `v${version}`;
-              
-              const { data: releases } = await github.rest.repos.listReleases({
-                owner: context.repo.owner,
-                repo: context.repo.repo
-              });
-              
-              const existingRelease = releases.find(release => release.tag_name === tagName);
-              
-              if (existingRelease) {
-                console.log(`Release with tag ${tagName} already exists. Creating a new tag with incremented version.`);
-                
-                // Increment version and create new release
-                const newVersion = incrementPatchVersion(version);
-                const newTagName = `v${newVersion}`;
-                
-                // Set the new version as an output for other jobs to use
-                core.exportVariable('APP_VERSION', newVersion);
-                
-                return await createGitHubRelease(newTagName, `JSR ${newTagName}`);
+
+            async function createOrUpdateRelease() {
+              let version = '${{ steps.app-version.outputs.version }}';
+              let tagName = `v${version}`;
+              let releaseName = `JSR ${tagName}`;
+              const releaseBody = `## Что нового в этом релизе:\n${process.env.COMMIT_LOG || 'Changes not available'}`;
+
+              for (let i = 0; i < 5; i++) { // Add a limit to prevent infinite loops
+                try {
+                  console.log(`Attempting to create release with tag ${tagName}`);
+                  const { data } = await github.rest.repos.createRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    tag_name: tagName,
+                    name: releaseName,
+                    body: releaseBody,
+                    draft: false,
+                    prerelease: false
+                  });
+                  
+                  console.log(`Successfully created release with tag ${tagName}`);
+                  core.setOutput('release_id', data.id);
+                  core.exportVariable('APP_VERSION', version);
+                  return data.id;
+
+                } catch (error) {
+                  if (error.status === 422 && error.response && error.response.data && error.response.data.errors.some(e => e.code === 'already_exists')) {
+                    console.log(`Tag ${tagName} already exists. Incrementing patch version.`);
+                    version = incrementPatchVersion(version);
+                    tagName = `v${version}`;
+                    releaseName = `JSR ${tagName}`;
+                  } else {
+                    console.error('Failed to create release:', error);
+                    throw error;
+                  }
+                }
               }
-              
-              // Create new release if it doesn't exist
-              return await createGitHubRelease(tagName, `JSR ${tagName}`);
-              
-            } catch (error) {
-              console.error('Error creating release:', error);
-              
-              // If we can't create a release, try to create one with incremented version
-              try {
-                const version = '${{ steps.app-version.outputs.version }}';
-                const newVersion = incrementPatchVersion(version);
-                const newTagName = `v${newVersion}`;
-                
-                console.log(`Trying with incremented version: ${newTagName}`);
-                
-                // Set the new version as an output for other jobs to use
-                core.exportVariable('APP_VERSION', newVersion);
-                
-                return await createGitHubRelease(newTagName, `JSR ${newTagName}`);
-              } catch (fallbackError) {
-                console.error('Fallback error:', fallbackError);
-                throw error;
-              }
+              throw new Error('Failed to create a unique release tag after 5 attempts.');
             }
+
+            return await createOrUpdateRelease();
 
   # Job to build Tauri app for multiple platforms
   build-tauri:
