@@ -225,6 +225,7 @@ jobs:
 
       # Install frontend dependencies
       - name: Install frontend dependencies
+        shell: bash
         run: |
           # Verify directory exists
           if [ ! -d "./JSR-Tauri/jsr-tauri-app/src" ]; then
@@ -237,6 +238,7 @@ jobs:
         
       # Проверка структуры проекта перед сборкой
       - name: Check project structure
+        shell: bash
         run: |
           echo "Checking project structure before build..."
           # Проверяем наличие директорий
@@ -433,8 +435,8 @@ jobs:
             }
             
             // Summary
-            if (files.length === 0) {
-              console.log('⚠️ No artifacts found to upload.');
-            } else {
+            if (files && files.length > 0) {
               console.log(`📊 Upload summary: ${successCount} successful, ${errorCount} failed`);
+            } else {
+              console.log('⚠️ No artifacts found to upload.');
             }
