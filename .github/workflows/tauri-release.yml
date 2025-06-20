@@ -127,10 +127,59 @@ jobs:
               let tagName = `v${version}`;
               let releaseName = `JSR ${tagName}`;
               const releaseBody = `## Что нового в этом релизе:\n${process.env.COMMIT_LOG || 'Changes not available'}`;
-
-              for (let i = 0; i < 5; i++) { // Add a limit to prevent infinite loops
+              
+              // Получаем список существующих тегов
+              console.log('Fetching existing tags to find the latest version...');
+              let existingTags = [];
+              try {
+                const { data: tags } = await github.rest.repos.listTags({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  per_page: 100
+                });
+                
+                existingTags = tags.map(tag => tag.name)
+                  .filter(name => name.startsWith('v') && /^v\d+\.\d+\.\d+$/.test(name))
+                  .sort((a, b) => {
+                    const versionA = a.substring(1).split('.').map(Number);
+                    const versionB = b.substring(1).split('.').map(Number);
+                    
+                    for (let i = 0; i < 3; i++) {
+                      if (versionA[i] !== versionB[i]) {
+                        return versionB[i] - versionA[i]; // Сортировка по убыванию
+                      }
+                    }
+                    return 0;
+                  });
+                  
+                console.log('Existing tags (newest first):', existingTags.slice(0, 10));
+                
+                if (existingTags.length > 0) {
+                  // Берем самую новую версию и увеличиваем ее
+                  const latestTag = existingTags[0];
+                  const latestVersion = latestTag.substring(1); // Убираем 'v'
+                  console.log(`Latest version tag is ${latestTag}`);
+                  
+                  // Разбиваем версию на компоненты
+                  const [major, minor, patch] = latestVersion.split('.').map(Number);
+                  
+                  // Увеличиваем patch версию
+                  version = `${major}.${minor}.${patch + 1}`;
+                  tagName = `v${version}`;
+                  releaseName = `JSR ${tagName}`;
+                  console.log(`Using incremented version: ${version}`);
+                }
+              } catch (error) {
+                console.warn('Error fetching tags, will use version from tauri.conf.json:', error);
+                // Продолжаем с версией из tauri.conf.json
+              }
+              
+              // Максимальное количество попыток создания релиза
+              const maxAttempts = 10;
+              
+              for (let i = 0; i < maxAttempts; i++) {
                 try {
-                  console.log(`Attempting to create release with tag ${tagName}`);
+                  console.log(`Attempting to create release with tag ${tagName} (attempt ${i+1}/${maxAttempts})`);
                   const { data } = await github.rest.repos.createRelease({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -158,7 +207,7 @@ jobs:
                   }
                 }
               }
-              throw new Error('Failed to create a unique release tag after 5 attempts.');
+              throw new Error(`Failed to create a unique release tag after ${maxAttempts} attempts. Consider cleaning up old tags or manually specifying a version.`);
             }
 
             return await createOrUpdateRelease();
