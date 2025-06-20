@@ -438,11 +438,11 @@ jobs:
             
             const fs = require('fs');
             const path = require('path');
-            const { exec } = require('@actions/exec');
             
+            // Use the existing exec function from the GitHub Actions environment
             // Install globby package version 11.0.4 which supports CommonJS require
             console.log('Installing globby package...');
-            await exec('npm', ['install', '--save', 'globby@11.0.4']);
+            await github.exec('npm', ['install', '--save', 'globby@11.0.4']);
             const globby = require('globby');
             
             // Get environment variables
@@ -572,7 +572,7 @@ jobs:
                   // Use PowerShell for robust file searching on Windows
                   console.log('Using PowerShell to search for artifacts on Windows...');
                   const command = `Get-ChildItem -Path './JSR-Tauri' -Recurse -Include '*.exe','*.msi','*.dmg','*.deb','*.AppImage' | Select-Object -ExpandProperty FullName`;
-                  await exec('powershell', ['-Command', command], {
+                  await github.exec('powershell', ['-Command', command], {
                     listeners: {
                       stdout: (data) => {
                         console.log(`PowerShell output: ${data.toString()}`);
@@ -588,7 +588,7 @@ jobs:
                 } else {
                   // Use standard find for Linux and macOS
                   console.log('Using find command to search for artifacts on Unix...');
-                  await exec('find', ['./JSR-Tauri', '-type', 'f', '(', '-name', '*.exe', '-o', '-name', '*.msi', '-o', '-name', '*.dmg', '-o', '-name', '*.deb', '-o', '-name', '*.AppImage', ')'], {
+                  await github.exec('find', ['./JSR-Tauri', '-type', 'f', '(', '-name', '*.exe', '-o', '-name', '*.msi', '-o', '-name', '*.dmg', '-o', '-name', '*.deb', '-o', '-name', '*.AppImage', ')'], {
                     listeners: {
                       stdout: (data) => {
                         console.log(`Find output: ${data.toString()}`);

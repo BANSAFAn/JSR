@@ -39,9 +39,6 @@
     "category": "Utility",
     "shortDescription": "Java version selector for Minecraft",
     "longDescription": "JSR helps determine the appropriate Java version for different Minecraft versions",
-    "deb": {
-      "depends": []
-    },
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
