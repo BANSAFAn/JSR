@@ -116,9 +116,31 @@ jobs:
              * @returns {string} Incremented version
              */
             function incrementPatchVersion(version) {
+              // Ensure we have a valid version string
+              if (!version || typeof version !== 'string') {
+                console.warn(`Invalid version provided: ${version}, using 1.0.0 as base`);
+                return '1.0.1';
+              }
+              
+              // Split version into components
               const versionParts = version.split('.');
-              let patch = parseInt(versionParts[2] || '0');
+              
+              // Ensure we have at least 3 parts (major.minor.patch)
+              while (versionParts.length < 3) {
+                versionParts.push('0');
+              }
+              
+              // Parse patch version, default to 0 if not a valid number
+              let patch = parseInt(versionParts[2]);
+              if (isNaN(patch)) {
+                console.warn(`Invalid patch version: ${versionParts[2]}, resetting to 0`);
+                patch = 0;
+              }
+              
+              // Increment patch version
               patch++;
+              
+              // Return updated version
               return `${versionParts[0]}.${versionParts[1]}.${patch}`;
             }
 
@@ -163,7 +185,8 @@ jobs:
                   // Разбиваем версию на компоненты
                   const [major, minor, patch] = latestVersion.split('.').map(Number);
                   
-                  // Увеличиваем patch версию
+                  // Увеличиваем patch версию и сразу используем ее
+                  // Это гарантирует, что мы начнем с версии выше, чем последняя существующая
                   version = `${major}.${minor}.${patch + 1}`;
                   tagName = `v${version}`;
                   releaseName = `JSR ${tagName}`;
@@ -175,9 +198,39 @@ jobs:
               }
               
               // Максимальное количество попыток создания релиза
-              const maxAttempts = 10;
+              const maxAttempts = 15;
+              
+              // Функция для проверки существования тега
+              async function tagExists(tag) {
+                try {
+                  // Проверяем существование тега через API
+                  await github.rest.git.getRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: `tags/${tag}`
+                  });
+                  return true; // Тег существует
+                } catch (error) {
+                  if (error.status === 404) {
+                    return false; // Тег не существует
+                  }
+                  // Другая ошибка, предполагаем, что тег может существовать
+                  console.warn(`Error checking if tag ${tag} exists:`, error);
+                  return true;
+                }
+              }
               
               for (let i = 0; i < maxAttempts; i++) {
+                // Проверяем существование тега перед созданием релиза
+                const tagExistsCheck = await tagExists(tagName);
+                if (tagExistsCheck) {
+                  console.log(`Tag ${tagName} already exists. Incrementing patch version.`);
+                  version = incrementPatchVersion(version);
+                  tagName = `v${version}`;
+                  releaseName = `JSR ${tagName}`;
+                  continue;
+                }
+                
                 try {
                   console.log(`Attempting to create release with tag ${tagName} (attempt ${i+1}/${maxAttempts})`);
                   const { data } = await github.rest.repos.createRelease({
@@ -197,7 +250,7 @@ jobs:
 
                 } catch (error) {
                   if (error.status === 422 && error.response && error.response.data && error.response.data.errors.some(e => e.code === 'already_exists')) {
-                    console.log(`Tag ${tagName} already exists. Incrementing patch version.`);
+                    console.log(`Tag ${tagName} already exists (detected during release creation). Incrementing patch version.`);
                     version = incrementPatchVersion(version);
                     tagName = `v${version}`;
                     releaseName = `JSR ${tagName}`;
@@ -207,7 +260,8 @@ jobs:
                   }
                 }
               }
-              throw new Error(`Failed to create a unique release tag after ${maxAttempts} attempts. Consider cleaning up old tags or manually specifying a version.`);
+              throw new Error(`Failed to create a unique release tag after ${maxAttempts} attempts. The latest attempted tag was ${tagName}. Consider cleaning up old tags or manually specifying a higher version.`);
+
             }
 
             return await createOrUpdateRelease();
